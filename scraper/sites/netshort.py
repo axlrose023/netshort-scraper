@@ -243,6 +243,14 @@ class NetshortScraper(BaseScraper):
             if not loc:
                 continue
 
+            # Each series appears in the sitemap under three path types with the
+            # same numeric ID: /episode/… (the actual episodes), /full-episodes/…
+            # (the series landing page) and /hotseries/… (a promo page). Only the
+            # /episode/ URLs are real episodes — counting the other two inflates
+            # episode_count and makes _is_episode_one() flag three "ep-1"s.
+            if "/episode/" not in loc:
+                continue
+
             series_id = _series_id(loc)
             if not series_id:
                 continue

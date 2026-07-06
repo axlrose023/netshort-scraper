@@ -101,11 +101,21 @@ class TestParseSitemapXml:
         )
 
     def test_returns_five_entries(self):
+        # The fixture also holds /full-episodes/ and /hotseries/ URLs for the same
+        # series IDs; those are not episodes and must be excluded from the count.
         assert len(self._entries()) == 5
 
+    def test_non_episode_urls_excluded(self):
+        # Right Beside Me has 3 /episode/ URLs plus a /full-episodes/ and a
+        # /hotseries/ URL — only the 3 real episodes should be counted.
+        rbm = [e for e in self._entries() if e.get("id") == "1808055875428081665"]
+        assert len(rbm) == 3
+
     def test_episode_one_flagged(self):
+        # Exactly one ep-1 per series — the /full-episodes/ and /hotseries/ URLs
+        # (which also lack an -ep-N suffix) must NOT be mistaken for episode one.
         ep1_entries = [e for e in self._entries() if e.get("_is_ep1")]
-        assert len(ep1_entries) == 2  # two series, each with one ep-1
+        assert len(ep1_entries) == 2  # two series, each with exactly one ep-1
 
     def test_episode_one_has_correct_title(self):
         ep1 = self._ep1(self._entries(), "right-beside")
