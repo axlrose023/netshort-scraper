@@ -2,6 +2,30 @@
 
 Reusable async web scraping framework — first target: [NetShort.com](https://netshort.com).
 
+## Write-up (deliverable summary)
+
+**Technology chosen — `curl_cffi` (async) + JSON-LD/XML-sitemap parsing, over Scrapy or Playwright.**
+NetShort is fully server-side rendered (Next.js): a plain HTTP GET returns every series'
+metadata inside `<script type="application/ld+json">` and the public XML sitemaps enumerate
+all ~40 k episode URLs — so a headless browser is unnecessary and Scrapy's framework is more
+machinery than this crawl shape needs. `curl_cffi` (a drop-in for `httpx`) is the default
+client because it forges a real browser's TLS/JA3 fingerprint — the one anti-bot signal that
+perfect headers cannot fix. Parsing structured data instead of CSS selectors also survives
+layout redesigns. Result: **40,675 unique series, deduplicated by numeric ID**, all required
+fields populated (`status` is genuinely absent from the site — verified via a Playwright
+network probe).
+
+**Extensibility** — three decoupled layers (`core/` infrastructure, `sites/` parsing,
+`config/` per-site YAML) tied together by design patterns: a new site implements one method,
+`discover()`, and optionally a `DetailParser`; item construction, dedup, CSV export, proxies,
+retries and rate limiting are all inherited. See *Architecture* below.
+
+**Proxies & anti-bot (first-class)** — a dedicated `antibot/` package: `ProxyPool` (rotating /
+sticky, ban-tracking, `PROXY_LIST`), `BanPolicy` (403/429 + Cloudflare-marker detection), and a
+coherent-identity layer — `curl_cffi` TLS impersonation + a `BrowserProfile` single-source-of-
+truth whose headers can't self-contradict (`ConsistencyValidator`), pinned per IP by
+`ProfilePool`. See *Anti-bot and proxy handling* below.
+
 ## Quick start
 
 ```bash
@@ -39,18 +63,23 @@ One row per unique series, deduplicated by numeric series ID:
 
 ## Technology choice
 
-**httpx (async) + JSON-LD structured data — not Scrapy, not Playwright.**
+**Async HTTP client + JSON-LD/XML-sitemap structured data — not Scrapy, not Playwright.**
 
 NetShort.com is fully server-side rendered (Next.js SSR): a plain HTTP GET returns
 complete HTML including all series metadata in `<script type="application/ld+json">`
-blocks. This makes a headless browser unnecessary and a full framework like Scrapy
-more machinery than the crawl pattern warrants.
+blocks, and the public XML sitemaps enumerate every episode URL. This makes a headless
+browser unnecessary and a full framework like Scrapy more machinery than the crawl
+pattern warrants.
 
-`httpx` was chosen over `aiohttp` for HTTP/2 support (fewer connections, better
-throughput on many concurrent detail-page requests) and a cleaner async API.
+Two async clients are provided behind one `Fetcher` interface:
+- **`curl_cffi` (default)** — forges a real browser's TLS/JA3 + HTTP2 fingerprint. This is
+  the decisive anti-bot property: `httpx`/`aiohttp`/`requests` all present a "Python" TLS
+  handshake that no amount of header spoofing can hide.
+- **`httpx`** (`--fetcher httpx`) — HTTP/2, faster, but a Python TLS fingerprint; fine when
+  the target does no TLS fingerprinting.
 
-The JSON-LD approach is more robust than CSS selectors: structured data is
-semantically versioned and far less likely to break on a layout redesign.
+Parsing structured data (JSON-LD / sitemap XML) instead of CSS selectors is more robust:
+it is semantically versioned and far less likely to break on a layout redesign.
 
 ## Architecture — adding new scrapers
 
