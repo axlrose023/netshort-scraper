@@ -59,7 +59,7 @@ One row per unique series, deduplicated by numeric series ID:
 | `genre` | Comma-separated genre tags |
 | `episode_count` | Total public episode count |
 | `status` | Not available from source (see note below) |
-| `tags` | Same as `genre` — site does not expose a separate ranking/tag field |
+| `tags` | Full tag list (`genre` is the first 3 of these — see note below) |
 
 ## Technology choice
 
@@ -178,9 +178,11 @@ site enable active challenges in the future.
 - **`status` field**: no structured "Ongoing/Completed" signal was found on any
   inspected page. The column is present in the CSV but always empty.
 
-- **`tags` vs `genre`**: the site does not expose a separate ranking or tag system
-  beyond the genre labels. Both columns contain the same genre data; this is noted
-  rather than silently collapsed.
+- **`tags` vs `genre`**: the site exposes a single taxonomy (the video `<tag>` list) — there
+  is no separate ranking system. To fill both requested columns from it without inventing
+  data, `tags` carries the **full** tag list and `genre` carries the **first three** as a
+  concise category label. They therefore overlap but are not identical (they differ for
+  ~99.97% of rows); this split is a presentation choice, noted rather than hidden.
 
 - **Series count**: discovery via the XML sitemaps yields **40,675 unique series**
   (the site's 90 sub-sitemaps enumerate every episode URL; series are grouped by numeric
