@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
+    <url>
+        <loc>https://netshort.com/episode/right-beside-me-1808055875428081665</loc>
+        <changefreq>daily</changefreq>
+        <priority>0.8</priority>
+        <video:video>
+            <video:thumbnail_loc>https://cover.netshort.com/production/abc123.image</video:thumbnail_loc>
+            <video:title>Right Beside Me</video:title>
+            <video:description>Eddie and Jenny, as children in the orphanage, make a desperate attempt to escape from their captors.</video:description>
+            <video:tag>Unforgettable Love</video:tag>
+            <video:tag>Love After Marriage</video:tag>
+            <video:tag>Contract Lovers</video:tag>
+        </video:video>
+    </url>
+    <url>
+        <loc>https://netshort.com/episode/right-beside-me-1808055875428081665-ep-2</loc>
+        <changefreq>daily</changefreq>
+        <priority>0.8</priority>
+        <video:video>
+            <video:thumbnail_loc>https://cover.netshort.com/production/abc123.image</video:thumbnail_loc>
+            <video:title>Right Beside Me - EP 2</video:title>
+            <video:description>In a flashback to their childhood in the orphanage, Jenny and Eddie face a harrowing ordeal.</video:description>
+            <video:tag>Unforgettable Love</video:tag>
+            <video:tag>Love After Marriage</video:tag>
+        </video:video>
+    </url>
+    <url>
+        <loc>https://netshort.com/episode/right-beside-me-1808055875428081665-ep-3</loc>
+        <changefreq>daily</changefreq>
+        <priority>0.8</priority>
+        <video:video>
+            <video:thumbnail_loc>https://cover.netshort.com/production/abc123.image</video:thumbnail_loc>
+            <video:title>Right Beside Me - EP 3</video:title>
+            <video:description>Episode 3 description.</video:description>
+            <video:tag>Unforgettable Love</video:tag>
+        </video:video>
+    </url>
+    <url>
+        <loc>https://netshort.com/episode/sky-citys-fallen-heiress-2072959628431728642</loc>
+        <changefreq>daily</changefreq>
+        <priority>0.8</priority>
+        <video:video>
+            <video:thumbnail_loc>https://awscover.netshort.com/production/cover2.webp</video:thumbnail_loc>
+            <video:title>Sky City's Fallen Heiress</video:title>
+            <video:description>A bullied butcher in the slums returns in fury after seven years.</video:description>
+            <video:tag>Karma Payback</video:tag>
+            <video:tag>Revenge</video:tag>
+            <video:tag>Multiple Identities</video:tag>
+        </video:video>
+    </url>
+    <url>
+        <loc>https://netshort.com/episode/sky-citys-fallen-heiress-2072959628431728642-ep-2</loc>
+        <changefreq>daily</changefreq>
+        <priority>0.8</priority>
+        <video:video>
+            <video:thumbnail_loc>https://awscover.netshort.com/production/cover2.webp</video:thumbnail_loc>
+            <video:title>EP 2 - Sky City's Fallen Heiress</video:title>
+            <video:description>Episode 2 description.</video:description>
+            <video:tag>Karma Payback</video:tag>
+        </video:video>
+    </url>
+</urlset>
