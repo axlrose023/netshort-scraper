@@ -1,28 +1,50 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
+from collections.abc import AsyncIterator, Callable, Coroutine, Iterable
+from typing import Any
 
 
-async def map_chunked[T, R](
-    items: Sequence[T],
-    coro_fn: Callable[[T], Awaitable[R]],
+async def map_bounded[T, R](
+    items: Iterable[T],
+    coro_fn: Callable[[T], Coroutine[Any, Any, R]],
     *,
-    chunk_size: int,
+    limit: int,
 ) -> AsyncIterator[R]:
-    """Apply *coro_fn* to *items* in bounded concurrent chunks, yielding results.
+    """Run *coro_fn* over *items* with at most *limit* coroutines in flight,
+    yielding each result as soon as it completes (completion order — *not*
+    input order).
 
-    Fans out ``chunk_size`` coroutines at a time via ``asyncio.gather`` and
-    yields each result as the chunk completes. The single shared home for the
-    "batch → gather → drain" pattern used by both listing discovery and
-    detail-page enrichment. Overall in-flight concurrency is still capped by the
-    per-domain semaphore inside RequestMiddleware; this only bounds fan-out width.
+    A sliding window: the instant any task finishes, the next item is scheduled,
+    so at most ``limit`` tasks ever exist at once. Memory is O(limit) no matter
+    how many items there are — the input may be a lazy iterator of millions —
+    and results stream out immediately, with no per-batch head-of-line stalls.
+
+    This bounds *fan-out* (how many units of work are materialised at once).
+    Per-domain request throttling is a separate concern handled by the semaphore
+    inside RequestMiddleware.
 
     ``coro_fn`` is expected to handle its own errors (return a sentinel/empty
-    result) — an exception raised here aborts the whole run, by design.
+    result); an exception it raises propagates here and aborts the whole run.
     """
-    for offset in range(0, len(items), chunk_size):
-        chunk = items[offset : offset + chunk_size]
-        results = await asyncio.gather(*[coro_fn(item) for item in chunk])
-        for result in results:
-            yield result
+    if limit < 1:
+        raise ValueError("limit must be >= 1")
+
+    it = iter(items)
+    pending: set[asyncio.Task[R]] = set()
+
+    def _refill() -> None:
+        while len(pending) < limit:
+            try:
+                item = next(it)
+            except StopIteration:
+                return
+            pending.add(asyncio.create_task(coro_fn(item)))
+
+    _refill()
+    while pending:
+        done, _ = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+        for task in done:
+            pending.discard(task)
+            yield task.result()
+        _refill()

@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 
 from scraper.core.antibot.middleware import RequestMiddleware
-from scraper.core.concurrency import map_chunked
+from scraper.core.concurrency import map_bounded
 from scraper.core.enricher import Enricher, NullEnricher
 from scraper.core.pipeline import SeriesItem
 
@@ -30,9 +30,10 @@ class BaseScraper(ABC):
     fundamentally different fetch strategy (e.g. GraphQL / infinite scroll).
     """
 
-    # Fan-out width for the enrichment phase; the middleware semaphore is the
-    # hard concurrency cap. Subclasses may tune this per site.
-    _ENRICH_CHUNK_SIZE: int = 50
+    # Fan-out window for the enrichment phase — how many enrich coroutines are
+    # materialised at once (bounds memory). Per-request throttling is the
+    # middleware semaphore, a separate cap. Subclasses may tune this per site.
+    _ENRICH_LIMIT: int = 50
 
     def __init__(
         self,
@@ -67,12 +68,10 @@ class BaseScraper(ABC):
         logger.info("Discovery complete — %d series queued for enrichment", len(partials))
 
         done = 0
-        async for item in map_chunked(
-            partials, self._enrich, chunk_size=self._ENRICH_CHUNK_SIZE
-        ):
+        async for item in map_bounded(partials, self._enrich, limit=self._ENRICH_LIMIT):
             yield item
             done += 1
-            if done % self._ENRICH_CHUNK_SIZE == 0 or done == len(partials):
+            if done % 500 == 0 or done == len(partials):
                 logger.info("Enrichment progress: %d / %d", done, len(partials))
 
     async def _enrich(self, partial: dict[str, str]) -> SeriesItem:

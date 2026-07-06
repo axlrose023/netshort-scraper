@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 from collections.abc import AsyncIterator
 
 from scraper.core.antibot.middleware import DefaultBanPolicy, RequestMiddleware
-from scraper.core.concurrency import map_chunked
+from scraper.core.concurrency import map_bounded
 from scraper.core.enricher import DetailParser, Enricher
 from scraper.core.fetcher import FetchResponse
 from scraper.sites.base import BaseScraper
@@ -162,8 +162,8 @@ class NetshortScraper(BaseScraper):
         series_ep_count: dict[str, int] = {}
 
         processed = 0
-        async for entries in map_chunked(
-            sitemap_urls, self._fetch_and_parse_sitemap, chunk_size=10
+        async for entries in map_bounded(
+            sitemap_urls, self._fetch_and_parse_sitemap, limit=10
         ):
             for entry in entries:
                 sid = str(entry["id"])
