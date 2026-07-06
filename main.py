@@ -9,9 +9,10 @@ import time
 import yaml
 
 from scraper.core.antibot.middleware import RequestMiddleware
+from scraper.core.antibot.profile import ProfilePool
 from scraper.core.antibot.proxy_pool import ProxyPool
 from scraper.core.enricher import DetailPageEnricher, NullEnricher
-from scraper.core.fetcher import HttpxFetcher
+from scraper.core.fetcher import CurlCffiFetcher, Fetcher, HttpxFetcher
 from scraper.core.pipeline import Pipeline
 from scraper.sites.netshort import NetshortBanPolicy, NetshortDetailParser, NetshortScraper
 
@@ -74,6 +75,15 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "(default: the site config's rate_limit.concurrency, else 5).",
     )
     parser.add_argument(
+        "--fetcher",
+        choices=["curl", "httpx"],
+        default="curl",
+        help=(
+            "HTTP backend. 'curl' = curl_cffi with browser TLS/JA3 impersonation "
+            "(stealth, recommended). 'httpx' = faster but a Python TLS fingerprint."
+        ),
+    )
+    parser.add_argument(
         "--config",
         default=None,
         help="Path to site YAML config (defaults to scraper/config/<source>.yaml).",
@@ -110,11 +120,14 @@ async def run(args: argparse.Namespace) -> None:
     concurrency = args.concurrency if args.concurrency is not None else rl.get("concurrency", 5)
 
     proxy_pool = ProxyPool()  # reads PROXY_LIST env var; empty = direct requests
-    fetcher = HttpxFetcher(timeout=30.0)
+    fetcher: Fetcher = (
+        CurlCffiFetcher(timeout=30.0) if args.fetcher == "curl" else HttpxFetcher(timeout=30.0)
+    )
     middleware = RequestMiddleware(
         fetcher=fetcher,
         proxy_pool=proxy_pool,
         ban_policy=NetshortBanPolicy() if args.source == "netshort" else None,
+        profile_pool=ProfilePool(),  # coherent, per-IP-sticky browser identities
         concurrency=concurrency,
         delay_min=rl.get("delay_min", 0.5),
         delay_max=rl.get("delay_max", 1.5),
@@ -140,6 +153,11 @@ async def run(args: argparse.Namespace) -> None:
 
     logger = logging.getLogger("main")
     logger.info("Starting %s → %s", args.source, args.output)
+    logger.info(
+        "Fetcher: %s%s",
+        args.fetcher,
+        " (browser TLS impersonation)" if args.fetcher == "curl" else " (Python TLS fingerprint)",
+    )
     if proxy_pool.has_proxies():
         logger.info("Proxy pool: %d proxies configured", proxy_pool.available_count())
     else:

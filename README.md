@@ -100,9 +100,27 @@ reference the fetcher directly.
 
 ## Anti-bot and proxy handling
 
-- **User-Agent rotation**: each request picks a random realistic browser UA from a
-  pool of five (Chrome/Firefox/Safari on Mac/Win/Linux), combined with full
-  `Sec-Fetch-*`, `Accept-*`, and `Cache-Control` headers.
+- **TLS/JA3 impersonation** (`CurlCffiFetcher`, default): the biggest tell for an HTTP
+  scraper is its TLS handshake — `httpx`/`requests` present an unmistakably "Python"
+  ClientHello no matter how perfect the headers are. The default fetcher uses
+  [`curl_cffi`](https://github.com/lexiforest/curl_cffi) to forge the exact
+  ClientHello/HTTP2 fingerprint of a real browser (e.g. `chrome142`), so the JA3 matches
+  the User-Agent. `HttpxFetcher` remains available via `--fetcher httpx` (faster, but a
+  Python fingerprint). Both are just `Fetcher` strategies — the scraper never knows which.
+
+- **Coherent browser identity** (`BrowserProfile` + `ConsistencyValidator`): a `BrowserProfile`
+  is the single source of truth for one identity — UA, `Accept`/`Accept-Language`,
+  Client Hints (`Sec-CH-UA*`), and the matching `curl_cffi` impersonation target. The
+  header set *agrees with itself*: a macOS Chrome profile sends `Sec-CH-UA-Platform: "macOS"`,
+  while a Firefox profile sends **no** `Sec-CH-UA` at all (Firefox never does). Every
+  profile is checked by `ConsistencyValidator` before use, so contradictions (Windows UA +
+  macOS platform hint, Firefox UA + Chromium Client Hints, UA family ≠ TLS family) are
+  impossible rather than merely unlikely.
+
+- **Session policy** (`ProfilePool`): one profile is pinned per network identity (proxy/IP)
+  for the whole run. A given IP therefore always presents the same UA, Client Hints and
+  TLS fingerprint — they never drift under a stable IP, and rotate *together* only when the
+  IP does. No "same IP, suddenly a different browser" tell.
 
 - **Proxy pool** (`ProxyPool`): reads `PROXY_LIST` env var (comma-separated proxy URLs).
   Supports two rotation modes: `ROTATING` (random proxy per request) and `STICKY`

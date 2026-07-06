@@ -8,38 +8,11 @@ from dataclasses import dataclass
 from typing import ClassVar
 from urllib.parse import urlparse
 
+from scraper.core.antibot.profile import ProfilePool
 from scraper.core.antibot.proxy_pool import ProxyPool
 from scraper.core.fetcher import Fetcher, FetchResponse
 
 logger = logging.getLogger(__name__)
-
-# ---------------------------------------------------------------------------
-# Browser-realistic header pool
-# ---------------------------------------------------------------------------
-
-# Realistic browser UA strings — kept as single lines on purpose (E501 exempt).
-_USER_AGENTS = [
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",  # noqa: E501
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",  # noqa: E501
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",  # noqa: E501
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15",  # noqa: E501
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:126.0) Gecko/20100101 Firefox/126.0",
-]
-
-
-def _browser_headers() -> dict[str, str]:
-    return {
-        "User-Agent": random.choice(_USER_AGENTS),
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",  # noqa: E501
-        "Accept-Language": "en-US,en;q=0.9",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Sec-Fetch-Dest": "document",
-        "Sec-Fetch-Mode": "navigate",
-        "Sec-Fetch-Site": "none",
-        "Sec-Fetch-User": "?1",
-        "Upgrade-Insecure-Requests": "1",
-        "Cache-Control": "no-cache",
-    }
 
 
 # ---------------------------------------------------------------------------
@@ -93,11 +66,15 @@ class ScraperStats:
 # ---------------------------------------------------------------------------
 
 class RequestMiddleware:
-    """Wraps a Fetcher with: UA injection, per-domain rate limiting,
+    """Wraps a Fetcher with: coherent browser identity, per-domain rate limiting,
     retry/backoff, and proxy rotation on ban.
 
     NetshortScraper (and any other site scraper) calls only ``fetch(url)``.
-    Everything else — proxies, retries, headers — is invisible to it.
+    Everything else — proxies, retries, fingerprint — is invisible to it.
+
+    Each request is dressed with a BrowserProfile drawn from ``profile_pool``,
+    pinned per network identity (proxy/IP) so headers *and* TLS fingerprint stay
+    self-consistent and stable for the life of a given IP.
     """
 
     def __init__(
@@ -105,6 +82,7 @@ class RequestMiddleware:
         fetcher: Fetcher,
         proxy_pool: ProxyPool,
         ban_policy: BanPolicy | None = None,
+        profile_pool: ProfilePool | None = None,
         concurrency: int = 5,
         delay_min: float = 0.5,
         delay_max: float = 1.5,
@@ -114,6 +92,7 @@ class RequestMiddleware:
         self._fetcher = fetcher
         self._proxy_pool = proxy_pool
         self._ban_policy = ban_policy or DefaultBanPolicy()
+        self._profile_pool = profile_pool or ProfilePool()
         self._concurrency = concurrency
         self._delay_min = delay_min
         self._delay_max = delay_max
@@ -134,6 +113,8 @@ class RequestMiddleware:
         domain = self._domain(url)
         sem = self._semaphore(domain)
         proxy = self._proxy_pool.get_proxy(domain)
+        # One coherent browser identity pinned to this network identity (IP).
+        profile = self._profile_pool.get(proxy or "direct")
 
         async with sem:
             for attempt in range(self._max_retries + 1):
@@ -148,7 +129,10 @@ class RequestMiddleware:
 
                 try:
                     response = await self._fetcher.fetch(
-                        url, proxy=proxy, headers=_browser_headers()
+                        url,
+                        proxy=proxy,
+                        headers=profile.headers(),
+                        impersonate=profile.impersonate,
                     )
                 except Exception as exc:
                     logger.warning("Network error fetching %s: %s", url, exc)

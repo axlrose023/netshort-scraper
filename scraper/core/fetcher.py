@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from typing import Any
 
 import httpx
 
@@ -18,9 +19,14 @@ class Fetcher(ABC):
     """Protocol for making HTTP requests.
 
     Swap implementations without touching any scraper logic:
-    - HttpxFetcher  — async HTTP/1.1 + HTTP/2 (default, used here)
+    - HttpxFetcher    — async HTTP/1.1 + HTTP/2 (fast, but a Python TLS fingerprint)
+    - CurlCffiFetcher — curl_cffi with browser TLS/JA3 impersonation (stealth)
     - PlaywrightFetcher — headless browser for JS-heavy targets
     - MockFetcher    — deterministic fixture responses for tests
+
+    ``impersonate`` names a browser TLS fingerprint (e.g. "chrome142"); fetchers
+    that cannot forge TLS ignore it. It is supplied by the active BrowserProfile
+    so the TLS handshake agrees with the User-Agent.
     """
 
     @abstractmethod
@@ -30,6 +36,7 @@ class Fetcher(ABC):
         *,
         proxy: str | None = None,
         headers: dict[str, str] | None = None,
+        impersonate: str | None = None,
     ) -> FetchResponse: ...
 
     @abstractmethod
@@ -73,7 +80,9 @@ class HttpxFetcher(Fetcher):
         *,
         proxy: str | None = None,
         headers: dict[str, str] | None = None,
+        impersonate: str | None = None,  # httpx cannot forge TLS — accepted but unused
     ) -> FetchResponse:
+        del impersonate
         client = await self._client_for(proxy)
         response = await client.get(url, headers=headers or {})
         return FetchResponse(
@@ -87,3 +96,51 @@ class HttpxFetcher(Fetcher):
         for client in self._clients.values():
             await client.aclose()
         self._clients.clear()
+
+
+class CurlCffiFetcher(Fetcher):
+    """Async fetcher backed by curl_cffi with browser TLS/JA3 impersonation.
+
+    Unlike httpx (whose TLS handshake is unmistakably "Python"), curl_cffi forges
+    the exact ClientHello of a real browser, so the JA3/HTTP2 fingerprint matches
+    the User-Agent. ``impersonate`` per request comes from the active
+    BrowserProfile; ``default_impersonate`` is the fallback when none is given.
+    """
+
+    def __init__(self, timeout: float = 30.0, default_impersonate: str = "chrome") -> None:
+        try:
+            from curl_cffi.requests import AsyncSession
+        except ImportError as exc:  # pragma: no cover - depends on optional install
+            raise RuntimeError(
+                "curl_cffi is not installed — run `uv add curl_cffi` to use the stealth fetcher"
+            ) from exc
+        self._timeout = timeout
+        self._default_impersonate = default_impersonate
+        # curl_cffi ships strict typing stubs; treat the session as Any so the
+        # profile-supplied impersonate string is not fought by the Literal type.
+        self._session: Any = AsyncSession(timeout=timeout)
+
+    async def fetch(
+        self,
+        url: str,
+        *,
+        proxy: str | None = None,
+        headers: dict[str, str] | None = None,
+        impersonate: str | None = None,
+    ) -> FetchResponse:
+        proxies = {"http": proxy, "https": proxy} if proxy else None
+        response = await self._session.get(
+            url,
+            headers=headers or {},
+            impersonate=impersonate or self._default_impersonate,
+            proxies=proxies,
+        )
+        return FetchResponse(
+            status_code=response.status_code,
+            text=response.text,
+            url=str(response.url),
+            headers=dict(response.headers),
+        )
+
+    async def close(self) -> None:
+        await self._session.close()
