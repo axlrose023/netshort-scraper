@@ -132,8 +132,9 @@ class RequestMiddleware:
                         impersonate=profile.impersonate,
                     )
                 except Exception as exc:
+                    # Transient — surfaced via logs and the retry counter; only a
+                    # request that exhausts all attempts counts as an error.
                     logger.warning("Network error fetching %s: %s", url, exc)
-                    self.stats.errors += 1
                     continue
 
                 # --- Ban detection (site-specific policy) ---
