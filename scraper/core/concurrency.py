@@ -41,10 +41,18 @@ async def map_bounded[T, R](
                 return
             pending.add(asyncio.create_task(coro_fn(item)))
 
-    _refill()
-    while pending:
-        done, _ = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
-        for task in done:
-            pending.discard(task)
-            yield task.result()
+    try:
         _refill()
+        while pending:
+            done, _ = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+            for task in done:
+                pending.discard(task)
+                yield task.result()
+            _refill()
+    finally:
+        # Early break by the consumer, or an exception from a task, must not
+        # leave the remaining window running as orphaned tasks.
+        for task in pending:
+            task.cancel()
+        if pending:
+            await asyncio.gather(*pending, return_exceptions=True)
