@@ -43,8 +43,6 @@ async def map_bounded[T, R](
                 yield task.result()
             _refill()
     finally:
-        # Early break by the consumer, or an exception from a task, must not
-        # leave the remaining window running as orphaned tasks.
         for task in pending:
             task.cancel()
         if pending:

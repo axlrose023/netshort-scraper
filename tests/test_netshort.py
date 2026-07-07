@@ -1,4 +1,3 @@
-"""Unit tests for NetshortScraper parsing — no network calls."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -17,10 +16,6 @@ FIXTURES = Path(__file__).parent / "fixtures"
 def _html(name: str) -> str:
     return (FIXTURES / name).read_text(encoding="utf-8")
 
-
-# ---------------------------------------------------------------------------
-# _series_id helper
-# ---------------------------------------------------------------------------
 
 class TestSeriesId:
     def test_extracts_id_from_full_url(self):
@@ -46,6 +41,7 @@ class TestSeriesId:
 # JSON-LD extraction
 # ---------------------------------------------------------------------------
 
+
 class TestExtractNodes:
     def test_detail_page_has_tv_series(self):
         nodes = _extract_jsonld_nodes(_html("detail_page.html"))
@@ -60,6 +56,7 @@ class TestExtractNodes:
 # ---------------------------------------------------------------------------
 # NetshortDetailParser (DetailParser Strategy)
 # ---------------------------------------------------------------------------
+
 
 class TestNetshortDetailParser:
     def setup_method(self):
@@ -78,20 +75,26 @@ class TestNetshortDetailParser:
 # _is_episode_one
 # ---------------------------------------------------------------------------
 
+
 class TestIsEpisodeOne:
     def test_episode_one_no_suffix(self):
         assert _is_episode_one("https://netshort.com/episode/some-title-1808055875428081665")
 
     def test_episode_two_has_suffix(self):
-        assert not _is_episode_one("https://netshort.com/episode/some-title-1808055875428081665-ep-2")
+        assert not _is_episode_one(
+            "https://netshort.com/episode/some-title-1808055875428081665-ep-2"
+        )
 
     def test_episode_100(self):
-        assert not _is_episode_one("https://netshort.com/episode/some-title-1808055875428081665-ep-100")
+        assert not _is_episode_one(
+            "https://netshort.com/episode/some-title-1808055875428081665-ep-100"
+        )
 
 
 # ---------------------------------------------------------------------------
 # _parse_sitemap_xml
 # ---------------------------------------------------------------------------
+
 
 class TestParseSitemapXml:
     def _entries(self):
@@ -100,8 +103,7 @@ class TestParseSitemapXml:
 
     def _ep1(self, entries, needle):
         return next(
-            e for e in entries
-            if e.get("_is_ep1") and needle in str(e.get("series_url", ""))
+            e for e in entries if e.get("_is_ep1") and needle in str(e.get("series_url", ""))
         )
 
     def test_returns_five_entries(self):
@@ -128,7 +130,8 @@ class TestParseSitemapXml:
     def test_ep_prefix_stripped_from_title(self):
         # "EP 2 - Sky City's Fallen Heiress" should become "Sky City's Fallen Heiress"
         heiress_ep2 = next(
-            e for e in self._entries()
+            e
+            for e in self._entries()
             if e.get("id") == "2072959628431728642" and not e.get("_is_ep1")
         )
         assert heiress_ep2["title"] == "Sky City's Fallen Heiress"

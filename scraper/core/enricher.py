@@ -9,22 +9,12 @@ from scraper.core.antibot.middleware import RequestMiddleware
 logger = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
-# Detail-page parsing — site-specific Strategy
-# ---------------------------------------------------------------------------
-
-
 class DetailParser(ABC):
     """Turns a detail page's HTML into extra fields (Strategy). Site-specific,
     pure and synchronous; must never raise — return {} on parse failure."""
 
     @abstractmethod
     def parse(self, html: str) -> dict[str, str]: ...
-
-
-# ---------------------------------------------------------------------------
-# Enrichment — how a partial item gets its detail fields (Strategy)
-# ---------------------------------------------------------------------------
 
 
 class Enricher(ABC):

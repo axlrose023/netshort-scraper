@@ -7,9 +7,6 @@ from typing import IO
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Domain model
-# ---------------------------------------------------------------------------
 
 CSV_COLUMNS: tuple[str, ...] = (
     "title",
@@ -25,7 +22,7 @@ CSV_COLUMNS: tuple[str, ...] = (
 
 @dataclass
 class SeriesItem:
-    id: str            # numeric suffix from URL — dedup key only, not exported
+    id: str
     title: str
     series_url: str
     cover_image_url: str = ""
@@ -64,17 +61,9 @@ class SeriesItem:
         )
 
 
-# ---------------------------------------------------------------------------
-# Pipeline control flow
-# ---------------------------------------------------------------------------
-
 class DropItem(Exception):
     """Raise from any pipeline stage to silently discard the item."""
 
-
-# ---------------------------------------------------------------------------
-# Stages
-# ---------------------------------------------------------------------------
 
 class ValidateStage:
     REQUIRED: tuple[str, ...] = ("title", "series_url")
@@ -124,10 +113,6 @@ class CSVExportStage:
             self._file.close()
             self._file = None
 
-
-# ---------------------------------------------------------------------------
-# Pipeline orchestrator
-# ---------------------------------------------------------------------------
 
 @dataclass
 class PipelineStats:

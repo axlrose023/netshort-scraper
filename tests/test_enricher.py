@@ -1,4 +1,3 @@
-"""Unit tests for enrichment strategies — no real network calls."""
 from __future__ import annotations
 
 import pytest

@@ -1,4 +1,3 @@
-"""Unit tests for the bounded concurrent map."""
 from __future__ import annotations
 
 import asyncio

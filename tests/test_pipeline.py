@@ -1,4 +1,3 @@
-"""Unit tests for pipeline stages — no network calls."""
 from __future__ import annotations
 
 import csv
@@ -37,6 +36,7 @@ def _item(**kwargs) -> SeriesItem:
 # SeriesItem.from_partial (Factory Method)
 # ---------------------------------------------------------------------------
 
+
 class TestFromPartial:
     def test_builds_from_partial_only(self):
         partial = {
@@ -61,10 +61,6 @@ class TestFromPartial:
         assert item.description == "keep"
 
 
-# ---------------------------------------------------------------------------
-# ValidateStage
-# ---------------------------------------------------------------------------
-
 class TestValidateStage:
     def test_passes_valid_item(self):
         stage = ValidateStage()
@@ -87,10 +83,6 @@ class TestValidateStage:
             stage.process(_item(title="   "))
 
 
-# ---------------------------------------------------------------------------
-# DeduplicateStage
-# ---------------------------------------------------------------------------
-
 class TestDeduplicateStage:
     def test_first_item_passes(self):
         stage = DeduplicateStage()
@@ -110,10 +102,6 @@ class TestDeduplicateStage:
         stage.process(_item(id="222"))
         assert stage.seen_count == 2
 
-
-# ---------------------------------------------------------------------------
-# CSVExportStage
-# ---------------------------------------------------------------------------
 
 class TestCSVExportStage:
     def test_writes_correct_columns(self):
@@ -142,10 +130,6 @@ class TestCSVExportStage:
         with pytest.raises(RuntimeError, match="open"):
             stage.process(_item())
 
-
-# ---------------------------------------------------------------------------
-# Pipeline
-# ---------------------------------------------------------------------------
 
 class TestPipeline:
     def test_full_pipeline_exports_valid_item(self):

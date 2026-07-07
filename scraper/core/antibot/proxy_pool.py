@@ -6,8 +6,8 @@ from enum import Enum
 
 
 class RotationMode(Enum):
-    ROTATING = "rotating"   # pick a random proxy each call
-    STICKY = "sticky"       # reuse the same proxy per domain until it's banned
+    ROTATING = "rotating"
+    STICKY = "sticky"
 
 
 class ProxyPool:
@@ -24,14 +24,9 @@ class ProxyPool:
         self._proxies: list[str] = proxies if proxies is not None else self._from_env()
         self._banned: set[str] = set()
         self._mode = mode
-        self._sticky: dict[str, str] = {}  # domain -> currently assigned proxy
-
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
+        self._sticky: dict[str, str] = {}
 
     def get_proxy(self, domain: str = "") -> str | None:
-        # None means "make a direct request" (empty pool or all banned).
         available = [p for p in self._proxies if p not in self._banned]
         if not available:
             return None
@@ -47,7 +42,6 @@ class ProxyPool:
         return random.choice(available)
 
     def mark_banned(self, proxy: str, domain: str = "") -> None:
-        # Banned globally (not per-domain); *domain* only evicts the sticky pick.
         self._banned.add(proxy)
         if self._sticky.get(domain) == proxy:
             del self._sticky[domain]
@@ -57,10 +51,6 @@ class ProxyPool:
 
     def has_proxies(self) -> bool:
         return bool(self._proxies)
-
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
 
     @staticmethod
     def _from_env() -> list[str]:

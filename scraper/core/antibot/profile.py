@@ -3,14 +3,6 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass
 
-# Coherent browser identity.
-# Detectors look for *internal contradictions* — a Windows UA with a macOS
-# `Sec-CH-UA-Platform`, a Firefox UA sending Chromium-only `Sec-CH-UA`, or a
-# "Python" TLS handshake under a "Chrome" UA. BrowserProfile is one identity's
-# single source of truth (self-consistent headers + matching curl_cffi target);
-# ConsistencyValidator rejects contradictory profiles; ProfilePool pins one per
-# network identity so a given IP never changes browser mid-run.
-
 _CHROME_ACCEPT = (
     "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,"
     "image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
@@ -48,14 +40,14 @@ class BrowserProfile:
     """One self-consistent browser identity (headers + TLS impersonation target)."""
 
     name: str
-    browser: str          # "chrome" | "edge" | "firefox" | "safari"
-    platform: str         # "macos" | "windows" | "linux"
+    browser: str  # "chrome" | "edge" | "firefox" | "safari"
+    platform: str  # "macos" | "windows" | "linux"
     user_agent: str
     accept: str
     accept_language: str
-    impersonate: str      # curl_cffi target, e.g. "chrome142" — must match UA
-    sec_ch_ua: str = ""            # Chromium-only; empty for firefox/safari
-    sec_ch_ua_platform: str = ""   # e.g. '"macOS"'; empty for firefox/safari
+    impersonate: str  # curl_cffi target, e.g. "chrome142" — must match UA
+    sec_ch_ua: str = ""  # Chromium-only; empty for firefox/safari
+    sec_ch_ua_platform: str = ""  # e.g. '"macOS"'; empty for firefox/safari
 
     def headers(self) -> dict[str, str]:
         """Return a full, internally-consistent request header set."""
@@ -75,11 +67,6 @@ class BrowserProfile:
             h["Sec-CH-UA-Mobile"] = "?0"
             h["Sec-CH-UA-Platform"] = self.sec_ch_ua_platform
         return h
-
-
-# ---------------------------------------------------------------------------
-# Consistency validation
-# ---------------------------------------------------------------------------
 
 
 class ProfileInconsistencyError(ValueError):
@@ -138,10 +125,6 @@ class ConsistencyValidator:
             raise ProfileInconsistencyError(f"profile {p.name!r}: " + "; ".join(errs))
 
 
-# ---------------------------------------------------------------------------
-# Built-in profile set — every entry passes ConsistencyValidator (see tests)
-# ---------------------------------------------------------------------------
-
 PROFILES: list[BrowserProfile] = [
     BrowserProfile(
         name="chrome142-macos",
@@ -195,14 +178,8 @@ PROFILES: list[BrowserProfile] = [
         accept=_FIREFOX_ACCEPT,
         accept_language="en-US,en;q=0.5",
         impersonate="firefox144",
-        # No Sec-CH-UA — Firefox does not send Client Hints.
     ),
 ]
-
-
-# ---------------------------------------------------------------------------
-# Session policy — one profile per network identity, sticky for the whole run
-# ---------------------------------------------------------------------------
 
 
 class ProfilePool:

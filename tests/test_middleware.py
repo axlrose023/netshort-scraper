@@ -1,4 +1,3 @@
-"""Unit tests for the request middleware's retry / ban / identity loop."""
 from __future__ import annotations
 
 from scraper.core.antibot.middleware import DefaultBanPolicy, RequestMiddleware
@@ -71,7 +70,7 @@ class TestFetchLoop:
 
         assert resp.status_code == 200
         first, last = fetcher.calls[0], fetcher.calls[-1]
-        assert first["proxy"] != last["proxy"]              # proxy rotated on ban
+        assert first["proxy"] != last["proxy"]  # proxy rotated on ban
         # the fingerprint sent on each attempt matches *that* attempt's proxy
         assert first["ua"] == f"ua::{first['proxy']}"
         assert last["ua"] == f"ua::{last['proxy']}"

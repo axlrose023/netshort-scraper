@@ -1,4 +1,3 @@
-"""Unit tests for the coherent browser-identity layer."""
 from __future__ import annotations
 
 import pytest
@@ -35,18 +34,15 @@ def _chrome_mac(**overrides) -> BrowserProfile:
 # Built-in profiles must all be internally consistent
 # ---------------------------------------------------------------------------
 
+
 class TestBuiltinProfiles:
     def test_all_builtin_profiles_pass(self):
         for p in PROFILES:
             assert ConsistencyValidator.errors(p) == [], f"{p.name} inconsistent"
 
     def test_pool_validates_on_construction(self):
-        ProfilePool()  # must not raise
+        ProfilePool()
 
-
-# ---------------------------------------------------------------------------
-# ConsistencyValidator catches contradictions
-# ---------------------------------------------------------------------------
 
 class TestConsistencyValidator:
     def test_valid_profile_has_no_errors(self):
@@ -95,10 +91,6 @@ class TestConsistencyValidator:
             ConsistencyValidator.check(_chrome_mac(sec_ch_ua=""))
 
 
-# ---------------------------------------------------------------------------
-# Header coherence
-# ---------------------------------------------------------------------------
-
 class TestHeaders:
     def test_chrome_sends_client_hints(self):
         h = _chrome_mac().headers()
@@ -111,10 +103,6 @@ class TestHeaders:
         assert "Sec-CH-UA" not in ff.headers()
 
 
-# ---------------------------------------------------------------------------
-# ProfilePool: sticky per identity (SessionPolicy)
-# ---------------------------------------------------------------------------
-
 class TestProfilePool:
     def test_same_identity_is_sticky(self):
         pool = ProfilePool(seed=1)
@@ -126,7 +114,6 @@ class TestProfilePool:
         pool = ProfilePool(seed=1)
         a = pool.get("proxyA")
         b = pool.get("proxyB")
-        # both are valid profiles from the set (may or may not be equal)
         assert a in PROFILES and b in PROFILES
 
     def test_empty_profiles_rejected(self):
