@@ -77,8 +77,6 @@ class DropItem(Exception):
 # ---------------------------------------------------------------------------
 
 class ValidateStage:
-    """Raises DropItem when required fields are absent."""
-
     REQUIRED: tuple[str, ...] = ("title", "series_url")
 
     def process(self, item: SeriesItem) -> SeriesItem:
@@ -89,8 +87,6 @@ class ValidateStage:
 
 
 class DeduplicateStage:
-    """Raises DropItem for items whose numeric ID has already been seen."""
-
     def __init__(self) -> None:
         self._seen: set[str] = set()
 
@@ -106,8 +102,6 @@ class DeduplicateStage:
 
 
 class CSVExportStage:
-    """Appends items to a CSV file, one row per item."""
-
     def __init__(self, path: str) -> None:
         self._path = path
         self._file: IO[str] | None = None
