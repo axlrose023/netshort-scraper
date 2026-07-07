@@ -70,17 +70,28 @@ def _is_episode_one(url: str) -> bool:
 
 def _extract_jsonld_nodes(html: str) -> list[dict[str, object]]:
     nodes: list[dict[str, object]] = []
+
+    def append_node(value: object) -> None:
+        if isinstance(value, dict):
+            nodes.append(value)
+
     for m in _JSONLD_RE.finditer(html):
         try:
             data = json.loads(m.group(1))
         except json.JSONDecodeError:
             continue
         if isinstance(data, list):
-            nodes.extend(data)
-        elif isinstance(data, dict) and "@graph" in data:
-            nodes.extend(data["@graph"])
+            for node in data:
+                append_node(node)
         elif isinstance(data, dict):
-            nodes.append(data)
+            graph = data.get("@graph")
+            if isinstance(graph, list):
+                for node in graph:
+                    append_node(node)
+            elif isinstance(graph, dict):
+                append_node(graph)
+            else:
+                nodes.append(data)
     return nodes
 
 
@@ -147,9 +158,7 @@ class NetshortScraper(BaseScraper):
         series_ep_count: dict[str, int] = {}
 
         processed = 0
-        async for entries in map_bounded(
-            sitemap_urls, self._fetch_and_parse_sitemap, limit=10
-        ):
+        async for entries in map_bounded(sitemap_urls, self._fetch_and_parse_sitemap, limit=10):
             for entry in entries:
                 sid = str(entry["id"])
                 series_ep_count[sid] = series_ep_count.get(sid, 0) + 1
@@ -262,15 +271,17 @@ class NetshortScraper(BaseScraper):
             slug = _EP_SUFFIX_RE.sub("", loc.split("/episode/", 1)[1])
             series_url = f"https://netshort.com/full-episodes/{slug}"
 
-            entries.append({
-                "id": series_id,
-                "_is_ep1": is_ep1,
-                "title": title,
-                "series_url": series_url,
-                "cover_image_url": thumbnail,
-                "description": description,
-                "genre": ", ".join(tags_list[:3]),
-                "tags": ", ".join(tags_list),
-            })
+            entries.append(
+                {
+                    "id": series_id,
+                    "_is_ep1": is_ep1,
+                    "title": title,
+                    "series_url": series_url,
+                    "cover_image_url": thumbnail,
+                    "description": description,
+                    "genre": ", ".join(tags_list[:3]),
+                    "tags": ", ".join(tags_list),
+                }
+            )
 
         return entries

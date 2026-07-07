@@ -68,6 +68,17 @@ class RequestMiddleware:
         max_retries: int = 3,
         backoff_base: float = 2.0,
     ) -> None:
+        if concurrency < 1:
+            raise ValueError("concurrency must be >= 1")
+        if delay_min < 0 or delay_max < 0:
+            raise ValueError("delay_min and delay_max must be >= 0")
+        if delay_min > delay_max:
+            raise ValueError("delay_min must be <= delay_max")
+        if max_retries < 0:
+            raise ValueError("max_retries must be >= 0")
+        if backoff_base < 0:
+            raise ValueError("backoff_base must be >= 0")
+
         self._fetcher = fetcher
         self._proxy_pool = proxy_pool
         self._ban_policy = ban_policy or DefaultBanPolicy()

@@ -85,6 +85,8 @@ it is semantically versioned and far less likely to break on a layout redesign.
 The codebase is split into three layers that never cross-contaminate:
 
 ```
+scraper/app.py       Application facade / composition root (registry, wiring, run result)
+
 scraper/core/          Generic infrastructure — no site knowledge
   fetcher.py           Fetcher ABC (swap httpx ↔ Playwright without touching scrapers)
   enricher.py          Enricher Strategy: NullEnricher / DetailPageEnricher + DetailParser ABC
@@ -102,7 +104,8 @@ scraper/config/        Site-specific runtime config
   netshort.yaml        URLs, rate limits (selectors go here if CSS is ever needed)
 ```
 
-**Design patterns** keep the layers decoupled: **Template Method** (`BaseScraper.scrape`
+**Design patterns** keep the layers decoupled: **Facade** (`ScraperApplication.run`
+is the public application entrypoint), **Template Method** (`BaseScraper.scrape`
 = discover → enrich → build), **Strategy** (`Fetcher`, `BanPolicy`, `Enricher`,
 `DetailParser` are all swappable), **Factory Method** (`SeriesItem.from_partial` is the
 single item-construction point), and **Chain of Responsibility** (the pipeline stages).
@@ -114,10 +117,10 @@ single item-construction point), and **Chain of Responsibility** (the pipeline s
    - `discover()` — an async generator yielding one partial-item dict per unique series
      (at minimum `id`, `title`, `series_url`; any other field is a best-effort value).
 2. If the site needs detail-page enrichment, add a `DetailParser` subclass with a
-   `parse(html) -> dict` method. Wire it up in `main.py` by injecting a
-   `DetailPageEnricher(middleware, MyDetailParser())` — or inject `NullEnricher()` to skip.
+   `parse(html) -> dict` method.
 3. Create `scraper/config/mysite.yaml` with base URL and rate limit settings.
-4. Register the scraper in `main.py`: `SCRAPERS = {"netshort": ..., "mysite": MySiteScraper}`.
+4. Register the scraper in `scraper/app.py` by adding a `SiteDefinition` to
+   `SITE_REGISTRY`. The CLI automatically exposes registered sources.
 
 Item construction, deduplication, CSV export, proxy rotation, retry/backoff, rate
 limiting and concurrency fan-out are all inherited — none of that code is touched.

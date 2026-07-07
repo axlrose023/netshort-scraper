@@ -48,6 +48,18 @@ class TestExtractNodes:
         types = [n.get("@type") for n in nodes]
         assert "TVSeries" in types
 
+    def test_graph_dict_is_returned_as_node(self):
+        html = (
+            '<script type="application/ld+json">'
+            '{"@graph": {"@type": "TVSeries", "description": "x"}}'
+            "</script>"
+        )
+        assert _extract_jsonld_nodes(html) == [{"@type": "TVSeries", "description": "x"}]
+
+    def test_non_object_list_entries_are_skipped(self):
+        html = '<script type="application/ld+json">[{"@type": "TVSeries"}, "bad", 1]</script>'
+        assert _extract_jsonld_nodes(html) == [{"@type": "TVSeries"}]
+
     def test_malformed_json_is_skipped(self):
         html = '<script type="application/ld+json">{bad json}</script>'
         assert _extract_jsonld_nodes(html) == []

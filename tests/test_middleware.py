@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from scraper.core.antibot.middleware import DefaultBanPolicy, RequestMiddleware
 from scraper.core.antibot.profile import BrowserProfile
 from scraper.core.antibot.proxy_pool import ProxyPool
@@ -86,3 +88,22 @@ class TestFetchLoop:
         else:
             raise AssertionError("expected RuntimeError after exhausting retries")
         assert len(fetcher.calls) == 4  # 1 initial + 3 retries
+
+
+class TestMiddlewareConfig:
+    def test_rejects_invalid_concurrency(self):
+        with pytest.raises(ValueError, match="concurrency"):
+            RequestMiddleware(
+                fetcher=_RecordingFetcher([200]),
+                proxy_pool=ProxyPool(proxies=[]),
+                concurrency=0,
+            )
+
+    def test_rejects_inverted_delay_range(self):
+        with pytest.raises(ValueError, match="delay_min"):
+            RequestMiddleware(
+                fetcher=_RecordingFetcher([200]),
+                proxy_pool=ProxyPool(proxies=[]),
+                delay_min=2,
+                delay_max=1,
+            )

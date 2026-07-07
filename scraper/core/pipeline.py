@@ -66,7 +66,7 @@ class DropItem(Exception):
 
 
 class ValidateStage:
-    REQUIRED: tuple[str, ...] = ("title", "series_url")
+    REQUIRED: tuple[str, ...] = ("id", "title", "series_url")
 
     def process(self, item: SeriesItem) -> SeriesItem:
         for f in self.REQUIRED:
@@ -112,6 +112,7 @@ class CSVExportStage:
             self._file.flush()
             self._file.close()
             self._file = None
+            self._writer = None
 
 
 @dataclass

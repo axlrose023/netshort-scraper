@@ -1,13 +1,22 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator, Callable, Coroutine, Iterable
-from typing import Any
+from collections.abc import AsyncIterable, AsyncIterator, Awaitable, Callable, Iterable
+
+
+async def _aiter[T](items: Iterable[T] | AsyncIterable[T]) -> AsyncIterator[T]:
+    if isinstance(items, AsyncIterable):
+        async for item in items:
+            yield item
+        return
+
+    for item in items:
+        yield item
 
 
 async def map_bounded[T, R](
-    items: Iterable[T],
-    coro_fn: Callable[[T], Coroutine[Any, Any, R]],
+    items: Iterable[T] | AsyncIterable[T],
+    coro_fn: Callable[[T], Awaitable[R]],
     *,
     limit: int,
 ) -> AsyncIterator[R]:
@@ -23,25 +32,33 @@ async def map_bounded[T, R](
     if limit < 1:
         raise ValueError("limit must be >= 1")
 
-    it = iter(items)
+    it = _aiter(items)
     pending: set[asyncio.Task[R]] = set()
+    exhausted = False
 
-    def _refill() -> None:
+    async def _refill() -> None:
+        nonlocal exhausted
         while len(pending) < limit:
-            try:
-                item = next(it)
-            except StopIteration:
+            if exhausted:
                 return
-            pending.add(asyncio.create_task(coro_fn(item)))
+            try:
+                item = await anext(it)
+            except StopAsyncIteration:
+                exhausted = True
+                return
+            pending.add(asyncio.create_task(_run(item)))
+
+    async def _run(item: T) -> R:
+        return await coro_fn(item)
 
     try:
-        _refill()
+        await _refill()
         while pending:
             done, _ = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
             for task in done:
                 pending.discard(task)
                 yield task.result()
-            _refill()
+            await _refill()
     finally:
         for task in pending:
             task.cancel()

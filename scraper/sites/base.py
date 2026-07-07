@@ -45,15 +45,13 @@ class BaseScraper(ABC):
         ...
 
     async def scrape(self) -> AsyncIterator[SeriesItem]:
-        partials = [partial async for partial in self.discover()]
-        logger.info("Discovery complete — %d series queued for enrichment", len(partials))
-
         done = 0
-        async for item in map_bounded(partials, self._enrich, limit=self._ENRICH_LIMIT):
+        async for item in map_bounded(self.discover(), self._enrich, limit=self._ENRICH_LIMIT):
             yield item
             done += 1
-            if done % 500 == 0 or done == len(partials):
-                logger.info("Enrichment progress: %d / %d", done, len(partials))
+            if done % 500 == 0:
+                logger.info("Enrichment progress: %d series", done)
+        logger.info("Scrape complete — %d series enriched", done)
 
     async def _enrich(self, partial: dict[str, str]) -> SeriesItem:
         try:

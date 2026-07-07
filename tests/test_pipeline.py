@@ -67,6 +67,11 @@ class TestValidateStage:
         item = _item()
         assert stage.process(item) is item
 
+    def test_drops_missing_id(self):
+        stage = ValidateStage()
+        with pytest.raises(DropItem, match="id"):
+            stage.process(_item(id=""))
+
     def test_drops_missing_title(self):
         stage = ValidateStage()
         with pytest.raises(DropItem, match="title"):

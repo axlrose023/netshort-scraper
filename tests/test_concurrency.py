@@ -36,6 +36,28 @@ class TestMapBounded:
 
         assert [r async for r in map_bounded([], work, limit=3)] == []
 
+    async def test_accepts_async_iterable_without_preloading(self):
+        produced = 0
+        peak_buffer = 0
+
+        async def source():
+            nonlocal produced, peak_buffer
+            for x in range(10):
+                produced += 1
+                peak_buffer = max(peak_buffer, produced)
+                yield x
+
+        async def work(x: int) -> int:
+            nonlocal produced
+            await asyncio.sleep(0.01)
+            produced -= 1
+            return x
+
+        got = sorted([r async for r in map_bounded(source(), work, limit=3)])
+
+        assert got == list(range(10))
+        assert peak_buffer <= 3
+
     async def test_invalid_limit_rejected(self):
         async def work(x: int) -> int:
             return x
