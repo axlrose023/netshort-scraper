@@ -16,5 +16,9 @@ venv/
 # OS cruft
 .DS_Store
 
+# Assignment brief — kept locally for reference, not a deliverable
+ASSIGNMENT.md
+Netshort_Scraping_Assignment*.docx
+
 # Note: netshort_series.csv IS committed — it is a required deliverable.
 # uv.lock IS committed — it pins the dependency set.
