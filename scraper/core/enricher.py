@@ -15,12 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 class DetailParser(ABC):
-    """Extracts extra fields from a detail page's HTML (Strategy).
-
-    Pure, synchronous, site-specific. Knows nothing about HTTP, proxies, or
-    concurrency — it only turns HTML into a dict of fields to merge into the item.
-    Must never raise: return an empty dict on parse failure.
-    """
+    """Turns a detail page's HTML into extra fields (Strategy). Site-specific,
+    pure and synchronous; must never raise — return {} on parse failure."""
 
     @abstractmethod
     def parse(self, html: str) -> dict[str, str]: ...
@@ -32,34 +28,25 @@ class DetailParser(ABC):
 
 
 class Enricher(ABC):
-    """Turns a listing *partial* into a dict of additional fields (Strategy).
-
-    Injected into a scraper instead of being hard-coded, so the *how* of
-    enrichment (fetch a detail page? call an API? nothing at all?) is swappable
-    without touching discovery logic or item construction.
-    """
+    """Turns a listing *partial* into extra fields (Strategy). Injected, so the
+    *how* (detail page? API? nothing?) is swappable without touching discovery."""
 
     @abstractmethod
     async def enrich(self, partial: dict[str, str]) -> dict[str, str]: ...
 
 
 class NullEnricher(Enricher):
-    """No-op enrichment — the item keeps whatever the listing phase provided.
-
-    Used for ``--skip-enrich``: discovery already carries a best-effort
-    description/metadata, so no detail-page round-trips are made.
-    """
+    """No-op enrichment (``--skip-enrich``): keep the best-effort listing data."""
 
     async def enrich(self, partial: dict[str, str]) -> dict[str, str]:
         return {}
 
 
 class DetailPageEnricher(Enricher):
-    """Generic detail-page enrichment: fetch a URL, then parse it off-thread.
+    """Fetch a detail page and parse it via the injected site-specific DetailParser.
 
-    Reusable across sites — the only site-specific piece is the injected
-    ``DetailParser``. The CPU-bound parse is offloaded to the default executor
-    so concurrent enrichments never queue behind each other's parsing work.
+    The CPU-bound parse is offloaded to the executor so concurrent enrichments
+    don't queue behind each other's parsing.
     """
 
     def __init__(

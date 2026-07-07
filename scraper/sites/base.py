@@ -13,21 +13,13 @@ logger = logging.getLogger(__name__)
 
 
 class BaseScraper(ABC):
-    """Contract every site-specific scraper must implement (Template Method).
+    """Template method: a site implements only ``discover()``; ``scrape()`` runs
+    the fixed skeleton discover → enrich (injected Strategy) → build SeriesItem.
 
-    A subclass supplies exactly one thing — how to *discover* the set of series
-    as partial dicts. Everything else is provided by injected collaborators:
-
-    - ``middleware``  — proxies, retries, rate limiting (never touched directly)
-    - ``enricher``    — how a partial gains its detail fields (Strategy);
-                        defaults to no enrichment (``NullEnricher``)
-
-    ``scrape()`` is the fixed orchestration skeleton:
-        discover() → enrich each partial concurrently → build SeriesItem
-
-    Item construction lives in exactly one place (``SeriesItem.from_partial``),
-    so subclasses never assemble items by hand. Override ``scrape()`` only for a
-    fundamentally different fetch strategy (e.g. GraphQL / infinite scroll).
+    Item construction lives solely in ``SeriesItem.from_partial`` — subclasses
+    never assemble items by hand. The ``middleware`` (proxies/retries/rate limit)
+    and ``enricher`` collaborators are injected; override ``scrape()`` only for a
+    fundamentally different fetch strategy (GraphQL, infinite scroll).
     """
 
     # Fan-out window for the enrichment phase — how many enrich coroutines are
@@ -45,23 +37,12 @@ class BaseScraper(ABC):
         self.enricher = enricher or NullEnricher()
         self.max_pages = max_pages
 
-    # ------------------------------------------------------------------
-    # Abstract interface — implement this single method per site
-    # ------------------------------------------------------------------
-
     @abstractmethod
     def discover(self) -> AsyncIterator[dict[str, str]]:
-        """Yield one partial-item dict per unique series.
-
-        Must yield at minimum ``id``, ``title`` and ``series_url``. Any other
-        SeriesItem field present is used as a best-effort value that an
-        ``Enricher`` may later override.
-        """
+        """Yield one partial-item dict per unique series (at minimum ``id``,
+        ``title``, ``series_url``; other fields are best-effort, overridable by
+        the ``Enricher``)."""
         ...
-
-    # ------------------------------------------------------------------
-    # Template method — orchestrates discovery → enrichment → SeriesItem
-    # ------------------------------------------------------------------
 
     async def scrape(self) -> AsyncIterator[SeriesItem]:
         partials = [partial async for partial in self.discover()]
@@ -75,7 +56,6 @@ class BaseScraper(ABC):
                 logger.info("Enrichment progress: %d / %d", done, len(partials))
 
     async def _enrich(self, partial: dict[str, str]) -> SeriesItem:
-        """Run the enrichment Strategy and fold the result into a SeriesItem."""
         try:
             detail = await self.enricher.enrich(partial)
         except Exception as exc:

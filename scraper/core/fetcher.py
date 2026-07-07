@@ -16,17 +16,11 @@ class FetchResponse:
 
 
 class Fetcher(ABC):
-    """Protocol for making HTTP requests.
-
-    Swap implementations without touching any scraper logic:
-    - HttpxFetcher    — async HTTP/1.1 + HTTP/2 (fast, but a Python TLS fingerprint)
-    - CurlCffiFetcher — curl_cffi with browser TLS/JA3 impersonation (stealth)
-    - PlaywrightFetcher — headless browser for JS-heavy targets
-    - MockFetcher    — deterministic fixture responses for tests
+    """HTTP transport (Strategy) — swap httpx ↔ curl_cffi without touching scrapers.
 
     ``impersonate`` names a browser TLS fingerprint (e.g. "chrome142"); fetchers
-    that cannot forge TLS ignore it. It is supplied by the active BrowserProfile
-    so the TLS handshake agrees with the User-Agent.
+    that cannot forge TLS ignore it. It comes from the active BrowserProfile so
+    the TLS handshake agrees with the User-Agent.
     """
 
     @abstractmethod
@@ -50,18 +44,13 @@ class Fetcher(ABC):
 
 
 class HttpxFetcher(Fetcher):
-    """Async HTTP fetcher backed by httpx (HTTP/2 enabled).
-
-    One client instance is created per proxy URL so connections are reused.
-    Falls back to a no-proxy client when proxy=None.
-    """
+    """httpx-backed fetcher (HTTP/2). One client per proxy so connections reuse."""
 
     def __init__(self, timeout: float = 30.0) -> None:
         self._timeout = timeout
         self._clients: dict[str | None, httpx.AsyncClient] = {}
 
     def _make_client(self, proxy: str | None) -> httpx.AsyncClient:
-        # httpx 0.28+ uses `proxy` (str | None) instead of the old `proxies` dict
         return httpx.AsyncClient(
             timeout=self._timeout,
             http2=True,
@@ -99,12 +88,10 @@ class HttpxFetcher(Fetcher):
 
 
 class CurlCffiFetcher(Fetcher):
-    """Async fetcher backed by curl_cffi with browser TLS/JA3 impersonation.
+    """curl_cffi fetcher that forges a real browser's TLS/JA3 fingerprint.
 
-    Unlike httpx (whose TLS handshake is unmistakably "Python"), curl_cffi forges
-    the exact ClientHello of a real browser, so the JA3/HTTP2 fingerprint matches
-    the User-Agent. ``impersonate`` per request comes from the active
-    BrowserProfile; ``default_impersonate`` is the fallback when none is given.
+    httpx presents an unmistakably "Python" ClientHello no matter the headers;
+    curl_cffi matches the JA3/HTTP2 fingerprint to the User-Agent.
     """
 
     def __init__(self, timeout: float = 30.0, default_impersonate: str = "chrome") -> None:

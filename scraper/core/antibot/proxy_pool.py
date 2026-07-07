@@ -11,21 +11,9 @@ class RotationMode(Enum):
 
 
 class ProxyPool:
-    """Manages a pool of HTTP/HTTPS proxy URLs.
-
-    Configure via the ``PROXY_LIST`` environment variable (comma-separated proxy
-    URLs) or by passing a list directly.  Falls back gracefully to direct
-    (no-proxy) requests when the pool is empty or all proxies are banned, so the
-    scraper stays runnable without real proxy credentials.
-
-    Example env var::
-
-        export PROXY_LIST="http://user:pass@host1:8080,http://user:pass@host2:8080"
-
-    Supports two rotation modes:
-    - ROTATING (default): a random available proxy is returned each call.
-    - STICKY: the same proxy is reused for a domain until it is banned, then a
-      new one is selected — useful for session-aware targets.
+    """A pool of HTTP/HTTPS proxy URLs from ``PROXY_LIST`` (comma-separated) or a
+    passed list, with ROTATING or STICKY (per-domain) rotation. Falls back to
+    direct requests when empty or all-banned, so the scraper runs without proxies.
     """
 
     def __init__(

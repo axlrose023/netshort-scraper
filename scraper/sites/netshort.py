@@ -94,12 +94,8 @@ def _extract_jsonld_nodes(html: str) -> list[dict[str, object]]:
 
 
 class NetshortDetailParser(DetailParser):
-    """Extract the canonical series description from a /full-episodes/ page.
-
-    The full-episodes page carries a ``TVSeries`` JSON-LD node whose
-    ``description`` is the curated series synopsis — richer than the episode-1
-    description available from the sitemap.
-    """
+    """Pull the canonical series synopsis from the /full-episodes/ page's
+    ``TVSeries`` JSON-LD node (richer than the episode-1 sitemap description)."""
 
     def parse(self, html: str) -> dict[str, str]:
         for node in _extract_jsonld_nodes(html):
@@ -114,19 +110,12 @@ class NetshortDetailParser(DetailParser):
 
 
 class NetshortScraper(BaseScraper):
-    """Scrapes all publicly listed series from netshort.com.
+    """Scrapes every public series from netshort.com via the XML sitemaps.
 
-    Discovery strategy — XML sitemaps (not listing page pagination):
-      The site's listing pages (drama/all-plots?page=N) use client-side
-      pagination: every page request returns the same 24 series regardless
-      of the page parameter.  The public sitemap index instead enumerates
-      all episode URLs across ~90 sub-sitemaps.
-
-    ``discover()`` fetches every sub-sitemap, groups episode URLs by series ID,
-    extracts episode-1 metadata (title, cover, tags, best-effort description)
-    and counts total episodes per series. Enrichment with the canonical
-    series description is the injected ``Enricher``'s job (see main.py) — pass
-    a ``NullEnricher`` to skip the detail-page round-trips entirely.
+    Listing pages (drama/all-plots?page=N) paginate client-side — every request
+    returns the same 24 series — so discovery instead walks the ~90 sub-sitemaps,
+    groups episode URLs by series ID, and counts episodes per series. The
+    canonical description is the injected ``Enricher``'s job (see main.py).
     """
 
     def __init__(
@@ -212,13 +201,9 @@ class NetshortScraper(BaseScraper):
         return urls
 
     async def _fetch_and_parse_sitemap(self, url: str) -> list[dict[str, object]]:
-        """Fetch one sub-sitemap and return a list of episode entry dicts.
-
-        Failures are swallowed (logged + counted, empty list returned) so one
-        bad sitemap never aborts the whole discovery run; the tally surfaces as
-        a warning at the end of discover(). XML parsing is CPU-bound and is
-        offloaded to the default executor so concurrent fetches keep running.
-        """
+        """Fetch one sub-sitemap → episode entry dicts. Failures are counted and
+        swallowed (a bad file never aborts the run); the CPU-bound XML parse is
+        offloaded to the executor so concurrent fetches keep running."""
         try:
             response = await self.middleware.fetch(url)
         except Exception as exc:

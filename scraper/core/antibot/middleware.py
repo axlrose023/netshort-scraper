@@ -66,15 +66,12 @@ class ScraperStats:
 # ---------------------------------------------------------------------------
 
 class RequestMiddleware:
-    """Wraps a Fetcher with: coherent browser identity, per-domain rate limiting,
-    retry/backoff, and proxy rotation on ban.
+    """Wraps a Fetcher with coherent browser identity, per-domain rate limiting,
+    retry/backoff and proxy rotation on ban. Scrapers call only ``fetch(url)``;
+    everything else is invisible to them.
 
-    NetshortScraper (and any other site scraper) calls only ``fetch(url)``.
-    Everything else — proxies, retries, fingerprint — is invisible to it.
-
-    Each request is dressed with a BrowserProfile drawn from ``profile_pool``,
-    pinned per network identity (proxy/IP) so headers *and* TLS fingerprint stay
-    self-consistent and stable for the life of a given IP.
+    Each request is dressed with a BrowserProfile pinned per network identity
+    (proxy/IP), so headers *and* TLS fingerprint stay consistent under a given IP.
     """
 
     def __init__(

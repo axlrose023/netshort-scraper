@@ -3,22 +3,13 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass
 
-# ---------------------------------------------------------------------------
-# Coherent browser identity
-# ---------------------------------------------------------------------------
-#
-# A scraper is fingerprinted on far more than its User-Agent. The cheap tells a
-# detector looks for are *internal contradictions*: a Windows UA paired with a
-# macOS `Sec-CH-UA-Platform`, a Firefox UA that nonetheless sends the
-# Chromium-only `Sec-CH-UA` headers, or a TLS handshake (JA3) that says "Python"
-# while the UA says "Chrome".
-#
-# BrowserProfile is the single source of truth for one identity: it emits a
-# header set that agrees with itself, and it names the curl_cffi impersonation
-# target so the TLS/HTTP2 fingerprint matches the UA. ConsistencyValidator
-# rejects any profile that contradicts itself before it is ever used, and
-# ProfilePool keeps one profile pinned per network identity for a whole run
-# (SessionPolicy) so a given IP never suddenly changes browser.
+# Coherent browser identity.
+# Detectors look for *internal contradictions* — a Windows UA with a macOS
+# `Sec-CH-UA-Platform`, a Firefox UA sending Chromium-only `Sec-CH-UA`, or a
+# "Python" TLS handshake under a "Chrome" UA. BrowserProfile is one identity's
+# single source of truth (self-consistent headers + matching curl_cffi target);
+# ConsistencyValidator rejects contradictory profiles; ProfilePool pins one per
+# network identity so a given IP never changes browser mid-run.
 
 _CHROME_ACCEPT = (
     "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,"
@@ -88,11 +79,7 @@ class ProfileInconsistencyError(ValueError):
 
 
 class ConsistencyValidator:
-    """Rejects self-contradictory profiles before they are ever sent.
-
-    This is the guard the recommendation is about: it turns "random fields that
-    may disagree" into "a fingerprint that always agrees with itself".
-    """
+    """Rejects self-contradictory profiles before they are ever sent."""
 
     @staticmethod
     def errors(p: BrowserProfile) -> list[str]:
@@ -205,12 +192,9 @@ PROFILES: list[BrowserProfile] = [
 
 
 class ProfilePool:
-    """Assigns a coherent BrowserProfile per network identity and keeps it stuck.
-
-    The identity key is the proxy URL (or ``"direct"`` for no-proxy). A given IP
-    therefore always presents the same browser for the life of the run — the UA,
-    Client Hints and TLS fingerprint never change under a stable IP, and they
-    rotate *together* only when the IP does. All profiles are validated up front.
+    """Pins one coherent BrowserProfile per network identity (proxy URL, or
+    ``"direct"``) for the whole run, so a given IP always presents the same
+    browser. Profiles are validated up front.
     """
 
     def __init__(

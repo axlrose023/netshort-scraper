@@ -44,14 +44,8 @@ class SeriesItem:
         partial: dict[str, str],
         detail: dict[str, str] | None = None,
     ) -> SeriesItem:
-        """Build a SeriesItem by merging a listing *partial* with enrichment *detail*.
-
-        This is the single, canonical construction point (Factory Method) — every
-        scraper funnels through here so field mapping is defined exactly once.
-        A non-empty value from ``detail`` overrides the ``partial`` value for the
-        same key, so an enricher can improve (e.g. replace a listing description
-        with the canonical one) without clobbering fields it does not touch.
-        """
+        """The single construction point (Factory Method): merge listing *partial*
+        with enrichment *detail*, where a non-empty *detail* value wins."""
         detail = detail or {}
 
         def pick(key: str) -> str:

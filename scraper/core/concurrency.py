@@ -12,20 +12,13 @@ async def map_bounded[T, R](
     limit: int,
 ) -> AsyncIterator[R]:
     """Run *coro_fn* over *items* with at most *limit* coroutines in flight,
-    yielding each result as soon as it completes (completion order — *not*
-    input order).
+    yielding each result in completion order (not input order).
 
-    A sliding window: the instant any task finishes, the next item is scheduled,
-    so at most ``limit`` tasks ever exist at once. Memory is O(limit) no matter
-    how many items there are — the input may be a lazy iterator of millions —
-    and results stream out immediately, with no per-batch head-of-line stalls.
-
-    This bounds *fan-out* (how many units of work are materialised at once).
-    Per-domain request throttling is a separate concern handled by the semaphore
-    inside RequestMiddleware.
-
-    ``coro_fn`` is expected to handle its own errors (return a sentinel/empty
-    result); an exception it raises propagates here and aborts the whole run.
+    A sliding window: the instant any task finishes the next item is scheduled,
+    so at most ``limit`` tasks exist at once — memory is O(limit), the input may
+    be a lazy iterator of millions, and results stream out with no per-batch
+    head-of-line stall. This bounds fan-out; per-domain request throttling is the
+    separate concern of the RequestMiddleware semaphore.
     """
     if limit < 1:
         raise ValueError("limit must be >= 1")
