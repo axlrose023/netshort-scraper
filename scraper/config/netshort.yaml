@@ -1,37 +1,10 @@
-# NetShort.com — site configuration
-# -------------------------------------------------------------------------
-# Discovery: XML sitemaps (not listing page URL pagination).
-# The site's drama/all-plots?page=N uses client-side pagination; every HTTP
-# request returns the same 24 series regardless of the page parameter.
-# The public sitemap index enumerates all episodes across 90 sub-sitemaps.
-#
-# Adding a new site: copy this file, fill in its values, create a matching
-# scraper class in scraper/sites/<sitename>.py, register it in main.py.
-# -------------------------------------------------------------------------
-
 base_url: "https://netshort.com"
-
-# Sitemap index — lists all 90 sub-sitemap URLs (site_play_1.xml … site_play_90.xml)
 sitemap_index_url: "https://netshort.com/sitemap_netshortcom.xml"
-
-# Detail page URL pattern for series description enrichment
 detail_url_pattern: "https://netshort.com/full-episodes/{slug}-{id}"
 
 rate_limit:
-  # Maximum concurrent in-flight requests to this domain
   concurrency: 5
-
-  # Randomised polite delay between requests (seconds); robots.txt says Crawl-delay: 1
   delay_min: 1.0
   delay_max: 2.0
-
-  # Retry settings
   max_retries: 3
   backoff_base: 2.0
-
-# Note: this scraper uses JSON-LD and XML sitemap data — no CSS/XPath selectors.
-# If the site removes structured data, add selectors here and update netshort.py.
-#
-# selectors:
-#   detail:
-#     description: "meta[name='description']"

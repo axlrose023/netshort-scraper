@@ -6,12 +6,12 @@ import tempfile
 
 import pytest
 
-from scraper.core.pipeline import (
+from scraper.domain.series import SeriesItem
+from scraper.pipelines import (
     CSVExportStage,
     DeduplicateStage,
     DropItem,
     Pipeline,
-    SeriesItem,
     ValidateStage,
 )
 
@@ -32,11 +32,6 @@ def _item(**kwargs) -> SeriesItem:
     return SeriesItem(**defaults)
 
 
-# ---------------------------------------------------------------------------
-# SeriesItem.from_partial (Factory Method)
-# ---------------------------------------------------------------------------
-
-
 class TestFromPartial:
     def test_builds_from_partial_only(self):
         partial = {
@@ -48,7 +43,7 @@ class TestFromPartial:
         item = SeriesItem.from_partial(partial)
         assert item.title == "T"
         assert item.description == "sitemap desc"
-        assert item.genre == ""  # absent key defaults to empty string
+        assert item.genre == ""
 
     def test_detail_overrides_partial(self):
         partial = {"id": "1", "title": "T", "series_url": "u", "description": "old"}
@@ -126,7 +121,7 @@ class TestCSVExportStage:
             assert len(rows) == 1
             assert rows[0]["title"] == "Test Series"
             assert rows[0]["episode_count"] == "20"
-            assert "id" not in rows[0]  # id is dedup-only, not exported
+            assert "id" not in rows[0]
         finally:
             os.unlink(path)
 

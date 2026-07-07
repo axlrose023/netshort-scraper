@@ -20,21 +20,15 @@ async def map_bounded[T, R](
     *,
     limit: int,
 ) -> AsyncIterator[R]:
-    """Run *coro_fn* over *items* with at most *limit* coroutines in flight,
-    yielding each result in completion order (not input order).
-
-    A sliding window: the instant any task finishes the next item is scheduled,
-    so at most ``limit`` tasks exist at once — memory is O(limit), the input may
-    be a lazy iterator of millions, and results stream out with no per-batch
-    head-of-line stall. This bounds fan-out; per-domain request throttling is the
-    separate concern of the RequestMiddleware semaphore.
-    """
     if limit < 1:
         raise ValueError("limit must be >= 1")
 
-    it = _aiter(items)
+    iterator = _aiter(items)
     pending: set[asyncio.Task[R]] = set()
     exhausted = False
+
+    async def _run(item: T) -> R:
+        return await coro_fn(item)
 
     async def _refill() -> None:
         nonlocal exhausted
@@ -42,14 +36,11 @@ async def map_bounded[T, R](
             if exhausted:
                 return
             try:
-                item = await anext(it)
+                item = await anext(iterator)
             except StopAsyncIteration:
                 exhausted = True
                 return
             pending.add(asyncio.create_task(_run(item)))
-
-    async def _run(item: T) -> R:
-        return await coro_fn(item)
 
     try:
         await _refill()

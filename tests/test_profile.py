@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from scraper.core.antibot.profile import (
+from scraper.infrastructure.antibot import (
     PROFILES,
     BrowserProfile,
     ConsistencyValidator,
@@ -30,11 +30,6 @@ def _chrome_mac(**overrides) -> BrowserProfile:
     return BrowserProfile(**base)
 
 
-# ---------------------------------------------------------------------------
-# Built-in profiles must all be internally consistent
-# ---------------------------------------------------------------------------
-
-
 class TestBuiltinProfiles:
     def test_all_builtin_profiles_pass(self):
         for p in PROFILES:
@@ -49,12 +44,10 @@ class TestConsistencyValidator:
         assert ConsistencyValidator.errors(_chrome_mac()) == []
 
     def test_ua_platform_mismatch(self):
-        # macOS profile but a Windows UA
         p = _chrome_mac(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/142")
         assert any("does not match platform" in e for e in ConsistencyValidator.errors(p))
 
     def test_ua_browser_mismatch(self):
-        # browser=chrome but a Firefox UA (still macOS, so the platform is fine)
         p = _chrome_mac(
             user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7; rv:144.0) Firefox/144.0"
         )
@@ -78,7 +71,7 @@ class TestConsistencyValidator:
             accept="text/html",
             accept_language="en-US,en;q=0.5",
             impersonate="firefox144",
-            sec_ch_ua='"Firefox";v="144"',  # contradiction: Firefox never sends this
+            sec_ch_ua='"Firefox";v="144"',
         )
         assert any("must not send Sec-CH-UA" in e for e in ConsistencyValidator.errors(p))
 

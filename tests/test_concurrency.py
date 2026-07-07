@@ -4,7 +4,7 @@ import asyncio
 
 import pytest
 
-from scraper.core.concurrency import map_bounded
+from scraper.services.concurrency import map_bounded
 
 
 class TestMapBounded:
@@ -78,9 +78,9 @@ class TestMapBounded:
 
         gen = map_bounded(range(5), work, limit=5)
         async for r in gen:
-            assert r == 0  # only the instant task completes before we bail
+            assert r == 0
             break
-        await gen.aclose()  # triggers the finally → the 10s tasks are cancelled
+        await gen.aclose()
 
         assert set(cancelled) == {1, 2, 3, 4}
 

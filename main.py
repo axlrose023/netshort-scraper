@@ -6,13 +6,9 @@ import logging
 import sys
 from typing import cast
 
-from scraper.app import FetcherName, ScraperApplication, ScraperRunConfig
+from scraper.services import FetcherName, ScraperApplication, ScraperRunConfig
 
 APP = ScraperApplication()
-
-# ---------------------------------------------------------------------------
-# Logging
-# ---------------------------------------------------------------------------
 
 
 def _setup_logging(verbose: bool) -> None:
@@ -22,14 +18,8 @@ def _setup_logging(verbose: bool) -> None:
         format="%(asctime)s  %(levelname)-8s  %(name)s — %(message)s",
         datefmt="%H:%M:%S",
     )
-    # Quieten noisy third-party loggers
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
-
-
-# ---------------------------------------------------------------------------
-# CLI
-# ---------------------------------------------------------------------------
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -92,11 +82,6 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Enable debug logging.",
     )
     return parser.parse_args(argv)
-
-
-# ---------------------------------------------------------------------------
-# Main async entrypoint
-# ---------------------------------------------------------------------------
 
 
 async def run(args: argparse.Namespace) -> None:

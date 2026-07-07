@@ -37,11 +37,6 @@ class TestSeriesId:
         assert _series_id("https://netshort.com/something-12345") == ""
 
 
-# ---------------------------------------------------------------------------
-# JSON-LD extraction
-# ---------------------------------------------------------------------------
-
-
 class TestExtractNodes:
     def test_detail_page_has_tv_series(self):
         nodes = _extract_jsonld_nodes(_html("detail_page.html"))
@@ -65,11 +60,6 @@ class TestExtractNodes:
         assert _extract_jsonld_nodes(html) == []
 
 
-# ---------------------------------------------------------------------------
-# NetshortDetailParser (DetailParser Strategy)
-# ---------------------------------------------------------------------------
-
-
 class TestNetshortDetailParser:
     def setup_method(self):
         self.parser = NetshortDetailParser()
@@ -81,11 +71,6 @@ class TestNetshortDetailParser:
     def test_returns_empty_dict_on_missing_tv_series(self):
         result = self.parser.parse("<html><body>No JSON-LD here</body></html>")
         assert result == {}
-
-
-# ---------------------------------------------------------------------------
-# _is_episode_one
-# ---------------------------------------------------------------------------
 
 
 class TestIsEpisodeOne:
@@ -103,11 +88,6 @@ class TestIsEpisodeOne:
         )
 
 
-# ---------------------------------------------------------------------------
-# _parse_sitemap_xml
-# ---------------------------------------------------------------------------
-
-
 class TestParseSitemapXml:
     def _entries(self):
         xml = (FIXTURES / "sitemap_sub.xml").read_text()
@@ -119,28 +99,21 @@ class TestParseSitemapXml:
         )
 
     def test_returns_five_entries(self):
-        # The fixture also holds /full-episodes/ and /hotseries/ URLs for the same
-        # series IDs; those are not episodes and must be excluded from the count.
         assert len(self._entries()) == 5
 
     def test_non_episode_urls_excluded(self):
-        # Right Beside Me has 3 /episode/ URLs plus a /full-episodes/ and a
-        # /hotseries/ URL — only the 3 real episodes should be counted.
         rbm = [e for e in self._entries() if e.get("id") == "1808055875428081665"]
         assert len(rbm) == 3
 
     def test_episode_one_flagged(self):
-        # Exactly one ep-1 per series — the /full-episodes/ and /hotseries/ URLs
-        # (which also lack an -ep-N suffix) must NOT be mistaken for episode one.
         ep1_entries = [e for e in self._entries() if e.get("_is_ep1")]
-        assert len(ep1_entries) == 2  # two series, each with exactly one ep-1
+        assert len(ep1_entries) == 2
 
     def test_episode_one_has_correct_title(self):
         ep1 = self._ep1(self._entries(), "right-beside")
         assert ep1["title"] == "Right Beside Me"
 
     def test_ep_prefix_stripped_from_title(self):
-        # "EP 2 - Sky City's Fallen Heiress" should become "Sky City's Fallen Heiress"
         heiress_ep2 = next(
             e
             for e in self._entries()

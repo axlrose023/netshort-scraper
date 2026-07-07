@@ -14,10 +14,10 @@ perfect headers cannot fix. Parsing structured data instead of CSS selectors als
 layout redesigns. Result: **40,675 unique series, deduplicated by numeric ID**, all required
 fields populated (`status` is genuinely absent from the site — see *Known limitations*).
 
-**Extensibility** — three decoupled layers (`core/` infrastructure, `sites/` parsing,
-`config/` per-site YAML) tied together by design patterns: a new site implements one method,
-`discover()`, and optionally a `DetailParser`; item construction, dedup, CSV export, proxies,
-retries and rate limiting are all inherited. See *Architecture* below.
+**Extensibility** — service-oriented layers (`domain/`, `infrastructure/`, `services/`,
+`pipelines/`, `sites/`, `config/`) keep parsing, transport, orchestration and export separate:
+a new site implements `discover()` and optionally a `DetailParser`; item construction, dedup,
+CSV export, proxies, retries and rate limiting are inherited. See *Architecture* below.
 
 **Proxies & anti-bot (first-class)** — a dedicated `antibot/` package: `ProxyPool` (rotating /
 sticky, ban-tracking, `PROXY_LIST`), `BanPolicy` (403/429 + Cloudflare-marker detection), and a
@@ -82,44 +82,47 @@ it is semantically versioned and far less likely to break on a layout redesign.
 
 ## Architecture — adding new scrapers
 
-The codebase is split into three layers that never cross-contaminate:
+The codebase is split into service-oriented layers:
 
 ```
-scraper/app.py       Application facade / composition root (registry, wiring, run result)
+scraper/domain/                 Domain objects shared by the app
+  series.py                     SeriesItem and CSV field contract
 
-scraper/core/          Generic infrastructure — no site knowledge
-  fetcher.py           Fetcher ABC (swap httpx ↔ Playwright without touching scrapers)
-  enricher.py          Enricher Strategy: NullEnricher / DetailPageEnricher + DetailParser ABC
-  concurrency.py       map_bounded() — bounded sliding-window concurrent map
-  pipeline.py          SeriesItem + validate → deduplicate → CSV (DropItem chain-of-responsibility)
-  antibot/
-    proxy_pool.py      Proxy rotation / ban tracking / env config
-    middleware.py      UA injection, rate limiting, retry/backoff, ban detection (BanPolicy)
+scraper/infrastructure/         External I/O implementations
+  http/                         Fetcher interface, httpx and curl_cffi clients
+  antibot/                      Profiles, proxy pool, ban policies, request middleware
 
-scraper/sites/         Site-specific parsing — no infrastructure knowledge
-  base.py              BaseScraper ABC: template method scrape(), one abstract method discover()
-  netshort.py          NetshortScraper (discover) + NetshortDetailParser (JSON-LD) + NetshortBanPolicy
+scraper/services/               Application services and use-case orchestration
+  scrape_service.py             ScraperApplication public entrypoint
+  config_loader.py              YAML config loading
+  fetcher_factory.py            Transport selection
+  enrichment.py                 Detail-page enrichment strategies
+  site_registry.py              Registered source adapters
+  concurrency.py                Bounded async fan-out helper
 
-scraper/config/        Site-specific runtime config
-  netshort.yaml        URLs, rate limits (selectors go here if CSS is ever needed)
+scraper/pipelines/              Output processing
+  csv_pipeline.py               validate -> deduplicate -> export
+  stages.py                     CSV pipeline stages
+
+scraper/sites/                  Site adapters
+  base.py                       Common scraper flow
+  netshort/                     NetShort ban policy, parsers and scraper
+
+scraper/config/                 Runtime config per source
 ```
 
-**Design patterns** keep the layers decoupled: **Facade** (`ScraperApplication.run`
-is the public application entrypoint), **Template Method** (`BaseScraper.scrape`
-= discover → enrich → build), **Strategy** (`Fetcher`, `BanPolicy`, `Enricher`,
-`DetailParser` are all swappable), **Factory Method** (`SeriesItem.from_partial` is the
-single item-construction point), and **Chain of Responsibility** (the pipeline stages).
+The public path is `ScraperApplication.run()`. The CLI passes run options into the
+service layer; the service layer wires infrastructure, site adapters and the CSV pipeline.
 
 **To add a new site:**
 
-1. Create `scraper/sites/mysite.py` — extend `BaseScraper` and implement the single
-   abstract method:
+1. Create `scraper/sites/mysite/` with a scraper that extends `BaseScraper` and implements:
    - `discover()` — an async generator yielding one partial-item dict per unique series
      (at minimum `id`, `title`, `series_url`; any other field is a best-effort value).
 2. If the site needs detail-page enrichment, add a `DetailParser` subclass with a
    `parse(html) -> dict` method.
 3. Create `scraper/config/mysite.yaml` with base URL and rate limit settings.
-4. Register the scraper in `scraper/app.py` by adding a `SiteDefinition` to
+4. Register the scraper in `scraper/services/site_registry.py` by adding a `SiteDefinition` to
    `SITE_REGISTRY`. The CLI automatically exposes registered sources.
 
 Item construction, deduplication, CSV export, proxy rotation, retry/backoff, rate

@@ -4,27 +4,15 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 
-from scraper.core.antibot.middleware import RequestMiddleware
-from scraper.core.concurrency import map_bounded
-from scraper.core.enricher import Enricher, NullEnricher
-from scraper.core.pipeline import SeriesItem
+from scraper.domain.series import SeriesItem
+from scraper.infrastructure.antibot.request_middleware import RequestMiddleware
+from scraper.services.concurrency import map_bounded
+from scraper.services.enrichment import Enricher, NullEnricher
 
 logger = logging.getLogger(__name__)
 
 
 class BaseScraper(ABC):
-    """Template method: a site implements only ``discover()``; ``scrape()`` runs
-    the fixed skeleton discover → enrich (injected Strategy) → build SeriesItem.
-
-    Item construction lives solely in ``SeriesItem.from_partial`` — subclasses
-    never assemble items by hand. The ``middleware`` (proxies/retries/rate limit)
-    and ``enricher`` collaborators are injected; override ``scrape()`` only for a
-    fundamentally different fetch strategy (GraphQL, infinite scroll).
-    """
-
-    # Fan-out window for the enrichment phase — how many enrich coroutines are
-    # materialised at once (bounds memory). Per-request throttling is the
-    # middleware semaphore, a separate cap. Subclasses may tune this per site.
     _ENRICH_LIMIT: int = 50
 
     def __init__(
@@ -38,11 +26,7 @@ class BaseScraper(ABC):
         self.max_pages = max_pages
 
     @abstractmethod
-    def discover(self) -> AsyncIterator[dict[str, str]]:
-        """Yield one partial-item dict per unique series (at minimum ``id``,
-        ``title``, ``series_url``; other fields are best-effort, overridable by
-        the ``Enricher``)."""
-        ...
+    def discover(self) -> AsyncIterator[dict[str, str]]: ...
 
     async def scrape(self) -> AsyncIterator[SeriesItem]:
         done = 0

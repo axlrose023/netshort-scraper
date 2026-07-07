@@ -3,59 +3,19 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import ClassVar
 from urllib.parse import urlparse
 
-from scraper.core.antibot.profile import ProfilePool
-from scraper.core.antibot.proxy_pool import ProxyPool
-from scraper.core.fetcher import Fetcher, FetchResponse
+from scraper.infrastructure.antibot.policies import BanPolicy, DefaultBanPolicy
+from scraper.infrastructure.antibot.profile_pool import ProfilePool
+from scraper.infrastructure.antibot.proxy_pool import ProxyPool
+from scraper.infrastructure.antibot.stats import ScraperStats
+from scraper.infrastructure.http.base import Fetcher
+from scraper.infrastructure.http.response import FetchResponse
 
 logger = logging.getLogger(__name__)
 
 
-class BanPolicy(ABC):
-    """Decides whether a response signals a block.
-
-    Site-specific subclasses inspect status codes and body patterns.
-    Generic retry logic never needs to know *why* it was blocked.
-    """
-
-    @abstractmethod
-    def is_banned(self, response: FetchResponse) -> bool: ...
-
-    def should_retry(self, response: FetchResponse) -> bool:
-        """True for transient server errors regardless of ban status."""
-        return response.status_code in {500, 502, 503, 504}
-
-
-class DefaultBanPolicy(BanPolicy):
-    """Treats HTTP 403 and 429 as bans; 5xx as retriable but not bans."""
-
-    _BAN_CODES: ClassVar[set[int]] = {403, 429}
-
-    def is_banned(self, response: FetchResponse) -> bool:
-        return response.status_code in self._BAN_CODES
-
-
-@dataclass
-class ScraperStats:
-    pages_fetched: int = 0
-    retries: int = 0
-    proxy_bans: int = 0
-    errors: int = 0
-
-
 class RequestMiddleware:
-    """Wraps a Fetcher with coherent browser identity, per-domain rate limiting,
-    retry/backoff and proxy rotation on ban. Scrapers call only ``fetch(url)``;
-    everything else is invisible to them.
-
-    Each request is dressed with a BrowserProfile pinned per network identity
-    (proxy/IP), so headers *and* TLS fingerprint stay consistent under a given IP.
-    """
-
     def __init__(
         self,
         fetcher: Fetcher,
@@ -101,11 +61,11 @@ class RequestMiddleware:
 
     async def fetch(self, url: str) -> FetchResponse:
         domain = self._domain(url)
-        sem = self._semaphore(domain)
+        semaphore = self._semaphore(domain)
         proxy = self._proxy_pool.get_proxy(domain)
         profile = self._profile_pool.get(proxy or "direct")
 
-        async with sem:
+        async with semaphore:
             for attempt in range(self._max_retries + 1):
                 if attempt > 0:
                     delay = self._backoff_base**attempt + random.uniform(0, 1)

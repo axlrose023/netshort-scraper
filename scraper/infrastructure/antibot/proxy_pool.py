@@ -11,11 +11,6 @@ class RotationMode(Enum):
 
 
 class ProxyPool:
-    """A pool of HTTP/HTTPS proxy URLs from ``PROXY_LIST`` (comma-separated) or a
-    passed list, with ROTATING or STICKY (per-domain) rotation. Falls back to
-    direct requests when empty or all-banned, so the scraper runs without proxies.
-    """
-
     def __init__(
         self,
         proxies: list[str] | None = None,
@@ -27,7 +22,7 @@ class ProxyPool:
         self._sticky: dict[str, str] = {}
 
     def get_proxy(self, domain: str = "") -> str | None:
-        available = [p for p in self._proxies if p not in self._banned]
+        available = [proxy for proxy in self._proxies if proxy not in self._banned]
         if not available:
             return None
 
@@ -47,7 +42,7 @@ class ProxyPool:
             del self._sticky[domain]
 
     def available_count(self) -> int:
-        return len([p for p in self._proxies if p not in self._banned])
+        return len([proxy for proxy in self._proxies if proxy not in self._banned])
 
     def has_proxies(self) -> bool:
         return bool(self._proxies)
@@ -55,4 +50,4 @@ class ProxyPool:
     @staticmethod
     def _from_env() -> list[str]:
         raw = os.environ.get("PROXY_LIST", "").strip()
-        return [p.strip() for p in raw.split(",") if p.strip()] if raw else []
+        return [proxy.strip() for proxy in raw.split(",") if proxy.strip()] if raw else []
