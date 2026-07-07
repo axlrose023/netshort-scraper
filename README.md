@@ -89,7 +89,7 @@ The codebase is split into three layers that never cross-contaminate:
 scraper/core/          Generic infrastructure — no site knowledge
   fetcher.py           Fetcher ABC (swap httpx ↔ Playwright without touching scrapers)
   enricher.py          Enricher Strategy: NullEnricher / DetailPageEnricher + DetailParser ABC
-  concurrency.py       map_chunked() — bounded fan-out helper (batch → gather → drain)
+  concurrency.py       map_bounded() — bounded sliding-window concurrent map
   pipeline.py          SeriesItem + validate → deduplicate → CSV (DropItem chain-of-responsibility)
   antibot/
     proxy_pool.py      Proxy rotation / ban tracking / env config
@@ -159,7 +159,8 @@ reference the fetcher directly.
 - **Ban detection** is separated from retry logic via `BanPolicy` ABC. The generic
   `DefaultBanPolicy` treats HTTP 403/429 as bans; `NetshortBanPolicy` additionally
   checks response bodies for Cloudflare JS-challenge markers. When a ban is detected,
-  the proxy is marked dead in the pool and a new one is selected before retrying.
+  the proxy is marked dead and a new one is selected — and its `BrowserProfile` is
+  re-fetched too, so the fingerprint rotates *with* the IP, not one attempt behind it.
 
 - **Rate limiting**: `asyncio.Semaphore` caps concurrent requests to the same domain
   (default: 5). A randomised delay (0.5–1.5 s by default) is added after each
