@@ -62,7 +62,7 @@ _EP_TITLE_PREFIX_RE = re.compile(r"^EP\s+\d+\s*[-:]\s*", re.IGNORECASE)
 
 def _series_id(url: str) -> str:
     """Extract the numeric series ID from any episode or full-episodes URL."""
-    m = _ID_RE.search(url.rstrip("/"))
+    m = _ID_RE.search(url.split("?")[0].rstrip("/"))
     return m.group(1) if m else ""
 
 
@@ -254,13 +254,10 @@ class NetshortScraper(BaseScraper):
             tag_els = video.findall("video:tag", _NS)
             tags_list = [t.text for t in tag_els if t.text]
 
-            # Build the /full-episodes/ URL from the /episode/ URL
-            slug_match = re.search(r"/episode/(.+)", loc)
-            if slug_match:
-                slug_clean = _EP_SUFFIX_RE.sub("", slug_match.group(1))
-                series_url = f"https://netshort.com/full-episodes/{slug_clean}"
-            else:
-                series_url = ""
+            # Build the /full-episodes/ URL from the /episode/ one (the /episode/
+            # segment is guaranteed present by the filter above).
+            slug = _EP_SUFFIX_RE.sub("", loc.split("/episode/", 1)[1])
+            series_url = f"https://netshort.com/full-episodes/{slug}"
 
             entries.append({
                 "id": series_id,

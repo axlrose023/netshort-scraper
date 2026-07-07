@@ -31,6 +31,10 @@ class TestSeriesId:
         url = "https://netshort.com/full-episodes/test-1983832036239818755#series"
         assert _series_id(url) == "1983832036239818755"
 
+    def test_extracts_id_with_query_string(self):
+        url = "https://netshort.com/episode/test-1983832036239818755?utm=x"
+        assert _series_id(url) == "1983832036239818755"
+
     def test_returns_empty_for_no_id(self):
         assert _series_id("https://netshort.com/drama/all-plots") == ""
 
