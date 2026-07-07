@@ -27,12 +27,8 @@ _NS = {
 
 
 class NetshortBanPolicy(DefaultBanPolicy):
-    """Extends the generic policy with Cloudflare JS-challenge detection.
-
-    During testing, plain requests with browser-like headers passed through
-    without an active challenge.  This subclass provides the hook to add
-    body-pattern matching should the site tighten its bot protection.
-    """
+    """Adds Cloudflare JS-challenge detection (body markers on a 200) to the
+    generic 403/429 policy — a defensive hook; the site did not challenge us."""
 
     _CF_MARKERS = ("Just a moment", "cf-browser-verification")
 
@@ -164,6 +160,13 @@ class NetshortScraper(BaseScraper):
                 logger.info("Sitemap progress: %d / %d files", processed, len(sitemap_urls))
 
         logger.info("Discovered %d unique series from sitemaps", len(series_meta))
+        metadata_less = len(series_ep_count) - len(series_meta)
+        if metadata_less:
+            logger.warning(
+                "%d series had no title-bearing episode-1 entry and were skipped "
+                "(their episode-1 URL carries no video metadata)",
+                metadata_less,
+            )
         if self._sitemap_failures:
             logger.warning(
                 "%d/%d sitemap files failed to download — result may be INCOMPLETE "

@@ -31,7 +31,7 @@ class ProxyPool:
     # ------------------------------------------------------------------
 
     def get_proxy(self, domain: str = "") -> str | None:
-        """Return a proxy URL for *domain*, or ``None`` for a direct request."""
+        # None means "make a direct request" (empty pool or all banned).
         available = [p for p in self._proxies if p not in self._banned]
         if not available:
             return None
@@ -47,7 +47,7 @@ class ProxyPool:
         return random.choice(available)
 
     def mark_banned(self, proxy: str, domain: str = "") -> None:
-        """Record *proxy* as blocked for *domain* and evict it from sticky cache."""
+        # Banned globally (not per-domain); *domain* only evicts the sticky pick.
         self._banned.add(proxy)
         if self._sticky.get(domain) == proxy:
             del self._sticky[domain]
