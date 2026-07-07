@@ -5,16 +5,14 @@ import time
 from collections.abc import Mapping
 from dataclasses import replace
 
-from scraper.infrastructure.antibot.profile_pool import ProfilePool
 from scraper.infrastructure.antibot.proxy_pool import ProxyPool
 from scraper.infrastructure.antibot.request_middleware import RequestMiddleware
 from scraper.pipelines.csv_pipeline import Pipeline
+from scraper.schemas.run import ScrapeResult, ScraperRunConfig
 from scraper.services.config_loader import ConfigLoader
-from scraper.services.contracts import ScrapeResult, ScraperRunConfig
 from scraper.services.enrichment import DetailPageEnricher, Enricher, NullEnricher
-from scraper.services.fetcher_factory import FetcherFactory
+from scraper.services.middleware_factory import RequestMiddlewareFactory
 from scraper.services.site_registry import SITE_REGISTRY, SiteDefinition
-from scraper.services.value_reader import ValueReader
 
 logger = logging.getLogger(__name__)
 
@@ -24,13 +22,11 @@ class ScraperApplication:
         self,
         sites: Mapping[str, SiteDefinition] | None = None,
         config_loader: ConfigLoader | None = None,
-        fetcher_factory: FetcherFactory | None = None,
-        values: ValueReader | None = None,
+        middleware_factory: RequestMiddlewareFactory | None = None,
     ) -> None:
         self._sites = dict(sites or SITE_REGISTRY)
         self._config_loader = config_loader or ConfigLoader()
-        self._fetcher_factory = fetcher_factory or FetcherFactory()
-        self._values = values or ValueReader()
+        self._middleware_factory = middleware_factory or RequestMiddlewareFactory()
 
     @property
     def sources(self) -> tuple[str, ...]:
@@ -41,7 +37,7 @@ class ScraperApplication:
         config = self._config_loader.load(options.source, options.config_path)
         rate_limit = self._config_loader.rate_limit(config)
         proxy_pool = ProxyPool()
-        middleware = self._middleware(options, site, rate_limit, proxy_pool)
+        middleware = self._middleware_factory.build(options, site, rate_limit, proxy_pool)
         enricher = self._enricher(site, middleware, options.skip_enrich)
         scraper = site.scraper_factory(
             middleware=middleware,
@@ -81,30 +77,6 @@ class ScraperApplication:
         except KeyError as exc:
             available = ", ".join(self.sources)
             raise ValueError(f"Unknown source {source!r}. Available sources: {available}") from exc
-
-    def _middleware(
-        self,
-        options: ScraperRunConfig,
-        site: SiteDefinition,
-        rate_limit: dict[str, object],
-        proxy_pool: ProxyPool,
-    ) -> RequestMiddleware:
-        return RequestMiddleware(
-            fetcher=self._fetcher_factory.build(options.fetcher),
-            proxy_pool=proxy_pool,
-            ban_policy=site.ban_policy_factory() if site.ban_policy_factory else None,
-            profile_pool=ProfilePool(),
-            concurrency=self._values.integer(
-                rate_limit,
-                "concurrency",
-                5,
-                options.concurrency,
-            ),
-            delay_min=self._values.number(rate_limit, "delay_min", 0.5),
-            delay_max=self._values.number(rate_limit, "delay_max", 1.5),
-            max_retries=self._values.integer(rate_limit, "max_retries", 3),
-            backoff_base=self._values.number(rate_limit, "backoff_base", 2.0),
-        )
 
     def _enricher(
         self,

@@ -1,24 +1,9 @@
 from __future__ import annotations
 
 import asyncio
-from abc import ABC, abstractmethod
 
 from scraper.infrastructure.antibot.request_middleware import RequestMiddleware
-
-
-class DetailParser(ABC):
-    @abstractmethod
-    def parse(self, html: str) -> dict[str, str]: ...
-
-
-class Enricher(ABC):
-    @abstractmethod
-    async def enrich(self, partial: dict[str, str]) -> dict[str, str]: ...
-
-
-class NullEnricher(Enricher):
-    async def enrich(self, partial: dict[str, str]) -> dict[str, str]:
-        return {}
+from scraper.services.enrichment.base import DetailParser, Enricher
 
 
 class DetailPageEnricher(Enricher):

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 
 from scraper.infrastructure.antibot.policies import DefaultBanPolicy
-from scraper.infrastructure.http.response import FetchResponse
+from scraper.schemas.http import FetchResponse
 
 logger = logging.getLogger(__name__)
 

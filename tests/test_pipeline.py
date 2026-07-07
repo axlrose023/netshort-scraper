@@ -6,7 +6,6 @@ import tempfile
 
 import pytest
 
-from scraper.domain.series import SeriesItem
 from scraper.pipelines import (
     CSVExportStage,
     DeduplicateStage,
@@ -14,6 +13,7 @@ from scraper.pipelines import (
     Pipeline,
     ValidateStage,
 )
+from scraper.schemas.series import SeriesItem
 
 
 def _item(**kwargs) -> SeriesItem:

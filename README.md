@@ -14,7 +14,7 @@ perfect headers cannot fix. Parsing structured data instead of CSS selectors als
 layout redesigns. Result: **40,675 unique series, deduplicated by numeric ID**, all required
 fields populated (`status` is genuinely absent from the site — see *Known limitations*).
 
-**Extensibility** — service-oriented layers (`domain/`, `infrastructure/`, `services/`,
+**Extensibility** — service-oriented layers (`schemas/`, `infrastructure/`, `services/`,
 `pipelines/`, `sites/`, `config/`) keep parsing, transport, orchestration and export separate:
 a new site implements `discover()` and optionally a `DetailParser`; item construction, dedup,
 CSV export, proxies, retries and rate limiting are inherited. See *Architecture* below.
@@ -85,8 +85,11 @@ it is semantically versioned and far less likely to break on a layout redesign.
 The codebase is split into service-oriented layers:
 
 ```
-scraper/domain/                 Domain objects shared by the app
+scraper/schemas/                Data contracts shared by layers
   series.py                     SeriesItem and CSV field contract
+  run.py                        ScraperRunConfig and ScrapeResult
+  http.py                       FetchResponse
+  stats.py                      PipelineStats and ScraperStats
 
 scraper/infrastructure/         External I/O implementations
   http/                         Fetcher interface, httpx and curl_cffi clients
@@ -96,7 +99,8 @@ scraper/services/               Application services and use-case orchestration
   scrape_service.py             ScraperApplication public entrypoint
   config_loader.py              YAML config loading
   fetcher_factory.py            Transport selection
-  enrichment.py                 Detail-page enrichment strategies
+  middleware_factory.py         Request middleware assembly
+  enrichment/                   Detail-page enrichment interfaces and strategies
   site_registry.py              Registered source adapters
   concurrency.py                Bounded async fan-out helper
 

@@ -3,8 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-from scraper.infrastructure.antibot.stats import ScraperStats
-from scraper.pipelines.stats import PipelineStats
+from scraper.schemas.stats import PipelineStats, ScraperStats
 
 FetcherName = Literal["curl", "httpx"]
 

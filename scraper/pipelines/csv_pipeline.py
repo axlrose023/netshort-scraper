@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import logging
 
-from scraper.domain.series import SeriesItem
 from scraper.pipelines.exceptions import DropItem
 from scraper.pipelines.stages import CSVExportStage, DeduplicateStage, ValidateStage
-from scraper.pipelines.stats import PipelineStats
+from scraper.schemas.series import SeriesItem
+from scraper.schemas.stats import PipelineStats
 
 logger = logging.getLogger(__name__)
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import httpx
 
 from scraper.infrastructure.http.base import Fetcher
-from scraper.infrastructure.http.response import FetchResponse
+from scraper.schemas.http import FetchResponse
 
 
 class HttpxFetcher(Fetcher):

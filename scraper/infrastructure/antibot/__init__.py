@@ -8,7 +8,7 @@ from scraper.infrastructure.antibot.profile_validator import (
 )
 from scraper.infrastructure.antibot.proxy_pool import ProxyPool, RotationMode
 from scraper.infrastructure.antibot.request_middleware import RequestMiddleware
-from scraper.infrastructure.antibot.stats import ScraperStats
+from scraper.schemas.stats import ScraperStats
 
 __all__ = [
     "PROFILES",

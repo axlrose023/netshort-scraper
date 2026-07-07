@@ -4,8 +4,8 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 
-from scraper.domain.series import SeriesItem
 from scraper.infrastructure.antibot.request_middleware import RequestMiddleware
+from scraper.schemas.series import SeriesItem
 from scraper.services.concurrency import map_bounded
 from scraper.services.enrichment import Enricher, NullEnricher
 

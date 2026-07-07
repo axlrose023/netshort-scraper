@@ -3,8 +3,8 @@ from __future__ import annotations
 import csv
 from typing import IO
 
-from scraper.domain.series import CSV_COLUMNS, SeriesItem
 from scraper.pipelines.exceptions import DropItem
+from scraper.schemas.series import CSV_COLUMNS, SeriesItem
 
 
 class ValidateStage:

@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import ClassVar
 
-from scraper.infrastructure.http.response import FetchResponse
+from scraper.schemas.http import FetchResponse
 
 
 class BanPolicy(ABC):

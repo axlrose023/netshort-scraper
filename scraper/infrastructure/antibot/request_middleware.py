@@ -8,9 +8,9 @@ from urllib.parse import urlparse
 from scraper.infrastructure.antibot.policies import BanPolicy, DefaultBanPolicy
 from scraper.infrastructure.antibot.profile_pool import ProfilePool
 from scraper.infrastructure.antibot.proxy_pool import ProxyPool
-from scraper.infrastructure.antibot.stats import ScraperStats
 from scraper.infrastructure.http.base import Fetcher
-from scraper.infrastructure.http.response import FetchResponse
+from scraper.schemas.http import FetchResponse
+from scraper.schemas.stats import ScraperStats
 
 logger = logging.getLogger(__name__)
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from scraper.infrastructure.http.response import FetchResponse
+from scraper.schemas.http import FetchResponse
 
 
 class Fetcher(ABC):

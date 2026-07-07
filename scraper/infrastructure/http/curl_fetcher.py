@@ -5,7 +5,7 @@ from typing import Any
 from curl_cffi.requests import AsyncSession
 
 from scraper.infrastructure.http.base import Fetcher
-from scraper.infrastructure.http.response import FetchResponse
+from scraper.schemas.http import FetchResponse
 
 
 class CurlCffiFetcher(Fetcher):
