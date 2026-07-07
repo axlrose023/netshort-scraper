@@ -146,6 +146,8 @@ class RequestMiddleware:
                     if proxy:
                         self._proxy_pool.mark_banned(proxy, domain)
                         proxy = self._proxy_pool.get_proxy(domain)
+                        # New IP → new coherent identity: fingerprint rotates with it.
+                        profile = self._profile_pool.get(proxy or "direct")
                     continue
 
                 # --- Transient server errors ---
