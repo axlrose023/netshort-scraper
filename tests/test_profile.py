@@ -57,6 +57,13 @@ class TestConsistencyValidator:
         p = _chrome_mac(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/142")
         assert any("does not match platform" in e for e in ConsistencyValidator.errors(p))
 
+    def test_ua_browser_mismatch(self):
+        # browser=chrome but a Firefox UA (still macOS, so the platform is fine)
+        p = _chrome_mac(
+            user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7; rv:144.0) Firefox/144.0"
+        )
+        assert any("does not match browser" in e for e in ConsistencyValidator.errors(p))
+
     def test_sec_ch_ua_platform_mismatch(self):
         p = _chrome_mac(sec_ch_ua_platform='"Windows"')
         assert any("Sec-CH-UA-Platform" in e for e in ConsistencyValidator.errors(p))

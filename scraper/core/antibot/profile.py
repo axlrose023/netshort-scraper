@@ -31,6 +31,14 @@ _PLATFORM_CH = {
     "windows": '"Windows"',
     "linux": '"Linux"',
 }
+# A token the UA must contain for each browser. "Version/" discriminates Safari
+# from Chrome, whose UA also contains "Safari" but never "Version/".
+_BROWSER_UA_TOKEN = {
+    "chrome": "Chrome",
+    "edge": "Edg",
+    "firefox": "Firefox",
+    "safari": "Version/",
+}
 # Browser families that send Client Hints (`Sec-CH-UA*`). Others must not.
 _CHROMIUM_FAMILY = {"chrome", "edge"}
 
@@ -91,6 +99,12 @@ class ConsistencyValidator:
             tokens = _PLATFORM_UA_TOKENS[p.platform]
             if not any(tok in p.user_agent for tok in tokens):
                 errs.append(f"UA does not match platform {p.platform!r} (expected one of {tokens})")
+
+        ua_token = _BROWSER_UA_TOKEN.get(p.browser)
+        if ua_token is None:
+            errs.append(f"unknown browser {p.browser!r}")
+        elif ua_token not in p.user_agent:
+            errs.append(f"UA does not match browser {p.browser!r} (expected {ua_token!r})")
 
         if not p.impersonate.startswith(p.browser):
             errs.append(
