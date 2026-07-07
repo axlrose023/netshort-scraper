@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
+from scraper.contracts import DetailParser
 from scraper.schemas.http import FetchResponse
-from scraper.services.enrichment import DetailParser
 
 
 class StubMiddleware:

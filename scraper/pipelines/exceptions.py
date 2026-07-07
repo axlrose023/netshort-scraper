@@ -1,2 +1,1 @@
-class DropItem(Exception):
-    pass
+class DropItem(Exception): ...

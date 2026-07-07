@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import pytest
-
 from scraper.services.enrichment import DetailPageEnricher, NullEnricher
 
 
@@ -32,7 +30,3 @@ class TestDetailPageEnricher:
         enricher = DetailPageEnricher(mw, echo_parser, url_key="detail_url")
         await enricher.enrich({"detail_url": "https://x/d", "series_url": "https://x/s"})
         assert mw.fetched == ["https://x/d"]
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])

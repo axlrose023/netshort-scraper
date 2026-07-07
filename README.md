@@ -14,8 +14,9 @@ perfect headers cannot fix. Parsing structured data instead of CSS selectors als
 layout redesigns. Result: **40,675 unique series, deduplicated by numeric ID**, all required
 fields populated (`status` is genuinely absent from the site — see *Known limitations*).
 
-**Extensibility** — service-oriented layers (`schemas/`, `infrastructure/`, `services/`,
-`pipelines/`, `sites/`, `config/`) keep parsing, transport, orchestration and export separate:
+**Extensibility** — service-oriented layers (`contracts/`, `schemas/`, `utils/`,
+`infrastructure/`, `services/`, `pipelines/`, `sites/`, `config/`) keep parsing, transport,
+orchestration and export separate:
 a new site implements `discover()` and optionally a `DetailParser`; item construction, dedup,
 CSV export, proxies, retries and rate limiting are inherited. See *Architecture* below.
 
@@ -91,6 +92,12 @@ scraper/schemas/                Data contracts shared by layers
   http.py                       FetchResponse
   stats.py                      PipelineStats and ScraperStats
 
+scraper/contracts/              Structural public interfaces
+  enrichment.py                 DetailParser and Enricher protocols
+
+scraper/utils/                  Shared framework helpers
+  concurrency.py                Bounded async fan-out helper
+
 scraper/infrastructure/         External I/O implementations
   http/                         Fetcher interface, httpx and curl_cffi clients
   antibot/                      Profiles, proxy pool, ban policies, request middleware
@@ -100,9 +107,8 @@ scraper/services/               Application services and use-case orchestration
   config_loader.py              YAML config loading
   fetcher_factory.py            Transport selection
   middleware_factory.py         Request middleware assembly
-  enrichment/                   Detail-page enrichment interfaces and strategies
+  enrichment/                   Detail-page enrichment strategies
   site_registry.py              Registered source adapters
-  concurrency.py                Bounded async fan-out helper
 
 scraper/pipelines/              Output processing
   csv_pipeline.py               validate -> deduplicate -> export
@@ -165,7 +171,7 @@ reference the fetcher directly.
   (same proxy per domain until banned). Falls back to direct requests when no proxies
   are configured, so the scraper is fully runnable without proxy credentials.
 
-- **Ban detection** is separated from retry logic via `BanPolicy` ABC. The generic
+- **Ban detection** is separated from retry logic via the `BanPolicy` protocol. The generic
   `DefaultBanPolicy` treats HTTP 403/429 as bans; `NetshortBanPolicy` additionally
   checks response bodies for Cloudflare JS-challenge markers. When a ban is detected,
   the proxy is marked dead and a new one is selected — and its `BrowserProfile` is

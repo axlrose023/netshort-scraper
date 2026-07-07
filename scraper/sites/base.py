@@ -1,32 +1,31 @@
 from __future__ import annotations
 
 import logging
-from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 
+from scraper.contracts.enrichment import Enricher
 from scraper.infrastructure.antibot.request_middleware import RequestMiddleware
 from scraper.schemas.series import SeriesItem
-from scraper.services.concurrency import map_bounded
-from scraper.services.enrichment import Enricher, NullEnricher
+from scraper.utils.concurrency import map_bounded
 
 logger = logging.getLogger(__name__)
 
 
-class BaseScraper(ABC):
+class BaseScraper:
     _ENRICH_LIMIT: int = 50
 
     def __init__(
         self,
         middleware: RequestMiddleware,
-        enricher: Enricher | None = None,
+        enricher: Enricher,
         max_pages: int | None = None,
     ) -> None:
         self.middleware = middleware
-        self.enricher = enricher or NullEnricher()
+        self.enricher = enricher
         self.max_pages = max_pages
 
-    @abstractmethod
-    def discover(self) -> AsyncIterator[dict[str, str]]: ...
+    def discover(self) -> AsyncIterator[dict[str, str]]:
+        raise NotImplementedError
 
     async def scrape(self) -> AsyncIterator[SeriesItem]:
         done = 0

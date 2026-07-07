@@ -5,12 +5,13 @@ import time
 from collections.abc import Mapping
 from dataclasses import replace
 
+from scraper.contracts.enrichment import Enricher
 from scraper.infrastructure.antibot.proxy_pool import ProxyPool
 from scraper.infrastructure.antibot.request_middleware import RequestMiddleware
 from scraper.pipelines.csv_pipeline import Pipeline
 from scraper.schemas.run import ScrapeResult, ScraperRunConfig
 from scraper.services.config_loader import ConfigLoader
-from scraper.services.enrichment import DetailPageEnricher, Enricher, NullEnricher
+from scraper.services.enrichment import DetailPageEnricher, NullEnricher
 from scraper.services.middleware_factory import RequestMiddlewareFactory
 from scraper.services.site_registry import SITE_REGISTRY, SiteDefinition
 

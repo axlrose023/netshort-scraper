@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from scraper.sites.netshort import _extract_jsonld_nodes, _is_episode_one, _series_id
+from scraper.sites.netshort.helpers import _extract_jsonld_nodes, _is_episode_one, _series_id
 
 
 class TestSeriesId:

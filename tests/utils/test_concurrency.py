@@ -4,7 +4,7 @@ import asyncio
 
 import pytest
 
-from scraper.services.concurrency import map_bounded
+from scraper.utils.concurrency import map_bounded
 
 
 class TestMapBounded:
@@ -83,7 +83,3 @@ class TestMapBounded:
         await gen.aclose()
 
         assert set(cancelled) == {1, 2, 3, 4}
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])

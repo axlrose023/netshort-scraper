@@ -21,8 +21,7 @@ _BROWSER_UA_TOKEN = {
 _CHROMIUM_FAMILY = {"chrome", "edge"}
 
 
-class ProfileInconsistencyError(ValueError):
-    pass
+class ProfileInconsistencyError(ValueError): ...
 
 
 class ConsistencyValidator:

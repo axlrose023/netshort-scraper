@@ -4,11 +4,11 @@ import asyncio
 import logging
 from collections.abc import AsyncIterator
 
+from scraper.contracts.enrichment import Enricher
 from scraper.infrastructure.antibot.request_middleware import RequestMiddleware
-from scraper.services.concurrency import map_bounded
-from scraper.services.enrichment import Enricher
 from scraper.sites.base import BaseScraper
 from scraper.sites.netshort.sitemap_parser import NetshortSitemapParser
+from scraper.utils.concurrency import map_bounded
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ class NetshortScraper(BaseScraper):
     def __init__(
         self,
         middleware: RequestMiddleware,
-        enricher: Enricher | None = None,
+        enricher: Enricher,
         config: dict[str, object] | None = None,
         max_pages: int | None = None,
         sitemap_parser: NetshortSitemapParser | None = None,

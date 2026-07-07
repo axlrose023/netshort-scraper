@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from typing import ClassVar
+from typing import ClassVar, Protocol
 
 from scraper.schemas.http import FetchResponse
 
 
-class BanPolicy(ABC):
-    @abstractmethod
+class BanPolicy(Protocol):
     def is_banned(self, response: FetchResponse) -> bool: ...
 
     def should_retry(self, response: FetchResponse) -> bool:

@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+from typing import Protocol, Self
 
 from scraper.schemas.http import FetchResponse
 
 
-class Fetcher(ABC):
-    @abstractmethod
+class Fetcher(Protocol):
     async def fetch(
         self,
         url: str,
@@ -16,10 +15,9 @@ class Fetcher(ABC):
         impersonate: str | None = None,
     ) -> FetchResponse: ...
 
-    @abstractmethod
     async def close(self) -> None: ...
 
-    async def __aenter__(self) -> Fetcher:
+    async def __aenter__(self) -> Self:
         return self
 
     async def __aexit__(self, *_: object) -> None:

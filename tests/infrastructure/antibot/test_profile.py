@@ -112,7 +112,3 @@ class TestProfilePool:
     def test_empty_profiles_rejected(self):
         with pytest.raises(ValueError):
             ProfilePool(profiles=[])
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])

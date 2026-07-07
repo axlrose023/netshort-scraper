@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import asyncio
 
+from scraper.contracts.enrichment import DetailParser
 from scraper.infrastructure.antibot.request_middleware import RequestMiddleware
-from scraper.services.enrichment.base import DetailParser, Enricher
 
 
-class DetailPageEnricher(Enricher):
+class DetailPageEnricher:
     def __init__(
         self,
         middleware: RequestMiddleware,

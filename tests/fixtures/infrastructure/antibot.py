@@ -21,7 +21,7 @@ class RecordingFetcher(Fetcher):
         return FetchResponse(status_code=status, text="", url=url)
 
     async def close(self) -> None:
-        pass
+        return None
 
 
 class IdentityProfilePool:

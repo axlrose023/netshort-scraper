@@ -4,9 +4,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Protocol
 
+from scraper.contracts.enrichment import DetailParser, Enricher
 from scraper.infrastructure.antibot.policies import BanPolicy
 from scraper.infrastructure.antibot.request_middleware import RequestMiddleware
-from scraper.services.enrichment import DetailParser, Enricher
 from scraper.sites.base import BaseScraper
 from scraper.sites.netshort import NetshortBanPolicy, NetshortDetailParser, NetshortScraper
 
@@ -16,7 +16,7 @@ class ScraperFactory(Protocol):
         self,
         *,
         middleware: RequestMiddleware,
-        enricher: Enricher | None = None,
+        enricher: Enricher,
         config: dict[str, object] | None = None,
         max_pages: int | None = None,
     ) -> BaseScraper: ...
