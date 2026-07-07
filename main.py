@@ -139,7 +139,7 @@ async def run(args: argparse.Namespace) -> None:
     # detail page and parse the canonical description (DetailPageEnricher).
     enricher = (
         NullEnricher()
-        if getattr(args, "skip_enrich", False)
+        if args.skip_enrich
         else DetailPageEnricher(middleware, NetshortDetailParser())
     )
 
@@ -165,18 +165,21 @@ async def run(args: argparse.Namespace) -> None:
 
     t0 = time.monotonic()
 
-    with Pipeline(args.output) as pipeline:
-        async for item in scraper.scrape():
-            pipeline.process(item)
+    try:
+        with Pipeline(args.output) as pipeline:
+            async for item in scraper.scrape():
+                pipeline.process(item)
 
-            if pipeline.stats.exported % 100 == 0 and pipeline.stats.exported:
-                elapsed = time.monotonic() - t0
-                logger.info(
-                    "Progress: %d exported, %d dropped, %.0fs elapsed",
-                    pipeline.stats.exported,
-                    pipeline.stats.dropped,
-                    elapsed,
-                )
+                if pipeline.stats.exported % 100 == 0 and pipeline.stats.exported:
+                    elapsed = time.monotonic() - t0
+                    logger.info(
+                        "Progress: %d exported, %d dropped, %.0fs elapsed",
+                        pipeline.stats.exported,
+                        pipeline.stats.dropped,
+                        elapsed,
+                    )
+    finally:
+        await middleware.close()  # close the fetcher's HTTP client / session
 
     elapsed = time.monotonic() - t0
     logger.info(

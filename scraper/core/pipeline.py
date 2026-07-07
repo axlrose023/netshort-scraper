@@ -106,7 +106,6 @@ class CSVExportStage:
         self._path = path
         self._file: IO[str] | None = None
         self._writer: csv.DictWriter[str] | None = None
-        self._count = 0
 
     def open(self) -> None:
         self._file = open(self._path, "w", newline="", encoding="utf-8")
@@ -117,7 +116,6 @@ class CSVExportStage:
         if self._writer is None:
             raise RuntimeError("CSVExportStage.open() was not called")
         self._writer.writerow(item.to_csv_row())
-        self._count += 1
         return item
 
     def close(self) -> None:
@@ -125,10 +123,6 @@ class CSVExportStage:
             self._file.flush()
             self._file.close()
             self._file = None
-
-    @property
-    def written_count(self) -> int:
-        return self._count
 
 
 # ---------------------------------------------------------------------------

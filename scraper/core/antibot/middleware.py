@@ -54,12 +54,6 @@ class ScraperStats:
     proxy_bans: int = 0
     errors: int = 0
 
-    def report(self) -> str:
-        return (
-            f"fetched={self.pages_fetched}  retries={self.retries}  "
-            f"proxy_bans={self.proxy_bans}  errors={self.errors}"
-        )
-
 
 # ---------------------------------------------------------------------------
 # Request middleware — generic, knows nothing about site-specific logic
