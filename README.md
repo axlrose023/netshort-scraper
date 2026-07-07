@@ -12,8 +12,7 @@ machinery than this crawl shape needs. `curl_cffi` (a drop-in for `httpx`) is th
 client because it forges a real browser's TLS/JA3 fingerprint — the one anti-bot signal that
 perfect headers cannot fix. Parsing structured data instead of CSS selectors also survives
 layout redesigns. Result: **40,675 unique series, deduplicated by numeric ID**, all required
-fields populated (`status` is genuinely absent from the site — verified via a Playwright
-network probe).
+fields populated (`status` is genuinely absent from the site — see *Known limitations*).
 
 **Extensibility** — three decoupled layers (`core/` infrastructure, `sites/` parsing,
 `config/` per-site YAML) tied together by design patterns: a new site implements one method,
@@ -176,8 +175,10 @@ site enable active challenges in the future.
 
 ## Known limitations
 
-- **`status` field**: no structured "Ongoing/Completed" signal was found on any
-  inspected page. The column is present in the CSV but always empty.
+- **`status` field**: no structured "Ongoing/Completed" signal exists anywhere on the
+  site — not in the JSON-LD, not in the rendered HTML, and not in any XHR response
+  captured while the page loads (checked via a headless-browser network trace). The
+  column is present in the CSV, per the brief's "if available", but always empty.
 
 - **`tags` vs `genre`**: the site exposes a single taxonomy (the video `<tag>` list) — there
   is no separate ranking system. To fill both requested columns from it without inventing
