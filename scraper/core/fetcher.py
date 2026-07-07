@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import httpx
+from curl_cffi.requests import AsyncSession
 
 
 @dataclass
@@ -95,16 +96,9 @@ class CurlCffiFetcher(Fetcher):
     """
 
     def __init__(self, timeout: float = 30.0, default_impersonate: str = "chrome") -> None:
-        try:
-            from curl_cffi.requests import AsyncSession
-        except ImportError as exc:  # pragma: no cover - depends on optional install
-            raise RuntimeError(
-                "curl_cffi is not installed — run `uv add curl_cffi` to use the stealth fetcher"
-            ) from exc
-        self._timeout = timeout
         self._default_impersonate = default_impersonate
-        # curl_cffi ships strict typing stubs; treat the session as Any so the
-        # profile-supplied impersonate string is not fought by the Literal type.
+        # Typed Any: curl_cffi's strict stubs otherwise reject the profile-supplied
+        # impersonate string (a plain str vs their Literal of browser names).
         self._session: Any = AsyncSession(timeout=timeout)
 
     async def fetch(
