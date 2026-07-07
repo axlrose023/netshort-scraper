@@ -15,10 +15,6 @@ from scraper.core.fetcher import Fetcher, FetchResponse
 logger = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
-# Ban detection — site-specific, separated from retry orchestration
-# ---------------------------------------------------------------------------
-
 class BanPolicy(ABC):
     """Decides whether a response signals a block.
 
@@ -43,10 +39,6 @@ class DefaultBanPolicy(BanPolicy):
         return response.status_code in self._BAN_CODES
 
 
-# ---------------------------------------------------------------------------
-# Observability
-# ---------------------------------------------------------------------------
-
 @dataclass
 class ScraperStats:
     pages_fetched: int = 0
@@ -54,10 +46,6 @@ class ScraperStats:
     proxy_bans: int = 0
     errors: int = 0
 
-
-# ---------------------------------------------------------------------------
-# Request middleware — generic, knows nothing about site-specific logic
-# ---------------------------------------------------------------------------
 
 class RequestMiddleware:
     """Wraps a Fetcher with coherent browser identity, per-domain rate limiting,
@@ -104,16 +92,18 @@ class RequestMiddleware:
         domain = self._domain(url)
         sem = self._semaphore(domain)
         proxy = self._proxy_pool.get_proxy(domain)
-        # One coherent browser identity pinned to this network identity (IP).
         profile = self._profile_pool.get(proxy or "direct")
 
         async with sem:
             for attempt in range(self._max_retries + 1):
                 if attempt > 0:
-                    delay = self._backoff_base ** attempt + random.uniform(0, 1)
+                    delay = self._backoff_base**attempt + random.uniform(0, 1)
                     logger.debug(
                         "Retry %d/%d for %s (backoff %.1fs)",
-                        attempt, self._max_retries, url, delay,
+                        attempt,
+                        self._max_retries,
+                        url,
+                        delay,
                     )
                     await asyncio.sleep(delay)
                     self.stats.retries += 1
@@ -126,31 +116,27 @@ class RequestMiddleware:
                         impersonate=profile.impersonate,
                     )
                 except Exception as exc:
-                    # Transient — surfaced via logs and the retry counter; only a
-                    # request that exhausts all attempts counts as an error.
                     logger.warning("Network error fetching %s: %s", url, exc)
                     continue
 
-                # --- Ban detection (site-specific policy) ---
                 if self._ban_policy.is_banned(response):
                     logger.warning(
                         "Ban detected (HTTP %d) for %s via proxy %s",
-                        response.status_code, url, proxy,
+                        response.status_code,
+                        url,
+                        proxy,
                     )
                     self.stats.proxy_bans += 1
                     if proxy:
                         self._proxy_pool.mark_banned(proxy, domain)
                         proxy = self._proxy_pool.get_proxy(domain)
-                        # New IP → new coherent identity: fingerprint rotates with it.
                         profile = self._profile_pool.get(proxy or "direct")
                     continue
 
-                # --- Transient server errors ---
                 if self._ban_policy.should_retry(response):
                     logger.warning("Transient error (HTTP %d) for %s", response.status_code, url)
                     continue
 
-                # --- Success ---
                 self.stats.pages_fetched += 1
                 await asyncio.sleep(random.uniform(self._delay_min, self._delay_max))
                 return response
